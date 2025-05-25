@@ -1,9 +1,9 @@
 from django.urls import path
-from . import views
+from .views import LettingListView, LettingDetailView
 
 app_name = "lettings"
 
 urlpatterns = [
-    path("", views.index, name="index"),
-    path("<int:letting_id>/", views.detail, name="detail"),
+    path("", LettingListView.as_view(), name="index"),
+    path("<int:pk>/", LettingDetailView.as_view(), name="detail"),
 ]

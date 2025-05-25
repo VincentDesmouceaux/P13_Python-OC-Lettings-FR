@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Profiles{% endblock title %}
+{% block title %}Profiles{% endblock %}
 
 {% block content %}
 <div class="container px-5 py-5 text-center">
@@ -18,7 +18,7 @@
                 <ul class="list-group list-group-flush list-group-careers">
                     {% for profile in profiles_list %}
                         <li class="list-group-item">
-                            <a href="{% url 'profile' username=profile.user.username %}">{{ profile.user.username }}</a>
+                            <a href="{% url 'profiles:detail' username=profile.user.username %}">{{ profile.user.username }}</a>
                         </li>
                     {% endfor %}
                 </ul>
@@ -31,13 +31,8 @@
 
 <div class="container px-5 py-5 text-center">
     <div class="justify-content-center">
-        <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'index' %}">
-            Home
-        </a>
-        <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'lettings_index' %}">
-            Lettings
-        </a>
+        <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'index' %}">Home</a>
+        <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'lettings:index' %}">Lettings</a>
     </div>
 </div>
-
 {% endblock %}

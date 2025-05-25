@@ -3,7 +3,6 @@ from django.core.validators import MaxValueValidator, MinLengthValidator
 
 
 class Address(models.Model):
-    """Physical address attached to a Letting."""
     number = models.PositiveIntegerField(validators=[MaxValueValidator(9999)])
     street = models.CharField(max_length=64)
     city = models.CharField(max_length=64)
@@ -11,14 +10,13 @@ class Address(models.Model):
     zip_code = models.PositiveIntegerField(validators=[MaxValueValidator(99999)])
     country_iso_code = models.CharField(max_length=3, validators=[MinLengthValidator(3)])
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # noqa: D401 – simple representation
         return f"{self.number} {self.street}"
 
 
 class Letting(models.Model):
-    """Rental unit available on the platform."""
     title = models.CharField(max_length=256)
     address = models.OneToOneField(Address, on_delete=models.CASCADE)
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # noqa: D401
         return self.title

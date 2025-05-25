@@ -1,16 +1,26 @@
-# lettings/views.py
-from django.shortcuts import render, get_object_or_404
+from django.views.generic import ListView, DetailView
 from .models import Letting
 
 
-def index(request):
-    """Liste de toutes les locations."""
-    lettings_list = Letting.objects.select_related("address").all()
-    return render(request, "lettings/index.html", {"lettings_list": lettings_list})
+class LettingListView(ListView):
+    """Display all lettings."""
+
+    model = Letting
+    template_name = "lettings/index.html"
+    context_object_name = "lettings_list"
 
 
-def detail(request, letting_id):
-    """Page d’un seul letting."""
-    letting = get_object_or_404(Letting, id=letting_id)
-    context = {"title": letting.title, "address": letting.address}
-    return render(request, "lettings/letting.html", context)
+class LettingDetailView(DetailView):
+    """Detail of a single letting."""
+
+    model = Letting
+    template_name = "lettings/letting.html"
+
+    def get_context_data(self, **kwargs):  # noqa: D401
+        context = super().get_context_data(**kwargs)
+        letting: Letting = self.object  # type: ignore[attr-defined]
+        context.update({
+            "title": letting.title,
+            "address": letting.address,
+        })
+        return context

@@ -1,10 +1,9 @@
-# oc_lettings_site/urls.py
 from django.contrib import admin
 from django.urls import path, include
-from . import views
+from .views import HomeView
 
 urlpatterns = [
-    path("", views.index, name="index"),
+    path("", HomeView.as_view(), name="index"),
     path("lettings/", include("lettings.urls")),
     path("profiles/", include("profiles.urls")),
     path("admin/", admin.site.urls),

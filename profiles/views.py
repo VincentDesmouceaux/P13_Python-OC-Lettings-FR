@@ -1,13 +1,19 @@
-# profiles/views.py
-from django.shortcuts import render, get_object_or_404
+from django.views.generic import ListView, DetailView
 from .models import Profile
 
 
-def index(request):
-    profiles_list = Profile.objects.select_related("user").all()
-    return render(request, "profiles/index.html", {"profiles_list": profiles_list})
+class ProfileListView(ListView):
+    model = Profile
+    template_name = "profiles/index.html"
+    context_object_name = "profiles_list"
 
 
-def detail(request, username):
-    profile = get_object_or_404(Profile, user__username=username)
-    return render(request, "profiles/profile.html", {"profile": profile})
+class ProfileDetailView(DetailView):
+    model = Profile
+    template_name = "profiles/profile.html"
+    slug_field = "user__username"
+    slug_url_kwarg = "username"
+
+    def get_object(self, queryset=None):  # noqa: D401
+        # lookup by username for readability
+        return Profile.objects.select_related("user").get(user__username=self.kwargs["username"])
