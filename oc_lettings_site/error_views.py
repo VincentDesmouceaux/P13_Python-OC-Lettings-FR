@@ -1,31 +1,31 @@
-from django.views.generic import TemplateView
-from django.http import HttpResponseServerError, HttpResponseNotFound, HttpResponse
-from django.views import View
+from django.http import HttpResponseNotFound, HttpResponseServerError
+from django.views.generic import TemplateView, View
+from django.http import HttpResponse
 
 
 class Error404View(TemplateView):
-    """Custom 404 page (class-based)."""
+    """Custom 404 page."""
     template_name = "404.html"
 
-    # handler404 doit renvoyer HttpResponseNotFound
-    def __call__(self, request, exception=None):
-        response = super().__call__(request, exception=exception)
-        return HttpResponseNotFound(response.rendered_content)
+    def get(self, request, *args, **kwargs):
+        # rend le template puis force le code 404
+        response = super().get(request, *args, **kwargs)
+        response.status_code = 404
+        return response
 
 
 class Error500View(TemplateView):
-    """Custom 500 page (class-based)."""
+    """Custom 500 page."""
     template_name = "500.html"
 
-    # handler500 n’a pas d’exception ; on renvoie 500
-    def __call__(self, request):
-        response = super().__call__(request)
-        return HttpResponseServerError(response.rendered_content)
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        response.status_code = 500
+        return response
 
 
 class CrashTestView(View):
-    """Vue volontairement cassée pour déclencher le handler 500 en local."""
+    """Déclenche volontairement une exception pour tester le handler 500."""
 
-    def get(self, request, *args, **kwargs) -> HttpResponse:  # noqa: D401
-        # On lève une erreur pour tester la page 500
+    def get(self, request, *args, **kwargs) -> HttpResponse:
         raise RuntimeError("Crash test : erreur 500 simulée")
