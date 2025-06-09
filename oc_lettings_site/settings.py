@@ -4,7 +4,7 @@ Seules les options utiles au projet de démonstration sont conservées.
 """
 
 from pathlib import Path
-import os
+
 
 # ----- BASE -----
 BASE_DIR = Path(__file__).resolve().parent.parent

@@ -1,4 +1,4 @@
-from django.http import HttpResponseNotFound, HttpResponseServerError
+
 from django.views.generic import TemplateView, View
 from django.http import HttpResponse
 
