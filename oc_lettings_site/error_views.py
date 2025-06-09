@@ -1,6 +1,9 @@
 
 from django.views.generic import TemplateView, View
 from django.http import HttpResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Error404View(TemplateView):

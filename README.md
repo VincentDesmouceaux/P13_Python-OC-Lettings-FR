@@ -75,3 +75,24 @@ Utilisation de PowerShell, comme ci-dessus sauf :
 
 - Pour activer l'environnement virtuel, `.\venv\Scripts\Activate.ps1` 
 - Remplacer `which <my-command>` par `(Get-Command <my-command>).Path`
+
+## Surveillance & Logging
+
+Nous utilisons Sentry pour capturer les erreurs en production :
+
+1. Définir la variable d’environnement `SENTRY_DSN` (fourni par Sentry).
+2. Le fichier `settings.py` initialise automatiquement Sentry si `SENTRY_DSN` est présent.
+3. Les logs sont affichés en console (niveau DEBUG en dev, INFO/ERROR en prod).
+4. Les exceptions non interceptées remontent dans Sentry grâce à l’intégration Django.
+
+### Configuration requise
+
+- `SENTRY_DSN` (env)
+- Accès internet pour envoyer les événements à Sentry
+
+### Étapes de déploiement
+
+1. Exporter `SENTRY_DSN` sur le serveur.
+2. Redémarrer l’application.  
+3. Vérifier l’onglet « Issues » dans votre projet Sentry.
+

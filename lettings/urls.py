@@ -1,4 +1,6 @@
+# lettings/urls.py
 from django.urls import path
+
 from .views import LettingListView, LettingDetailView
 
 app_name = "lettings"

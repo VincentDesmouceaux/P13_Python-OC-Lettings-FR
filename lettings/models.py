@@ -1,3 +1,4 @@
+# lettings/models.py
 from django.db import models
 from django.core.validators import MaxValueValidator, MinLengthValidator
 
@@ -10,10 +11,10 @@ class Address(models.Model):
     zip_code = models.PositiveIntegerField(validators=[MaxValueValidator(99999)])
     country_iso_code = models.CharField(max_length=3, validators=[MinLengthValidator(3)])
 
-    def __str__(self) -> str:  # noqa: D401 – simple representation
+    def __str__(self) -> str:
         return f"{self.number} {self.street}"
 
-    class Meta:                          # ← AJOUT
+    class Meta:
         verbose_name = "Address"
         verbose_name_plural = "Addresses"
 
@@ -22,5 +23,5 @@ class Letting(models.Model):
     title = models.CharField(max_length=256)
     address = models.OneToOneField(Address, on_delete=models.CASCADE)
 
-    def __str__(self) -> str:  # noqa: D401
+    def __str__(self) -> str:
         return self.title

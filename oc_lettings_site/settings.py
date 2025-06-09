@@ -4,6 +4,59 @@ Seules les options utiles au projet de démonstration sont conservées.
 """
 
 from pathlib import Path
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+import os
+
+SENTRY_DSN = os.getenv("SENTRY_DSN", None)
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        # Capture 100% des erreurs en prod (ajustez en fonction de votre plan)
+        traces_sample_rate=1.0,
+        send_default_pii=False,  # ne pas envoyer d’info personnelle
+    )
+
+# oc_lettings_site/settings.py
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s"
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+        # Sentry captera automatiquement les erreurs via DjangoIntegration
+    },
+    "loggers": {
+        "": {  # logger racine
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",  # on logge les 500
+            "propagate": False,
+        },
+        "lettings": {
+            "handlers": ["console"],
+            "level": "DEBUG",  # ou INFO en prod
+            "propagate": True,
+        },
+        "profiles": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+    },
+}
 
 
 # ----- BASE -----

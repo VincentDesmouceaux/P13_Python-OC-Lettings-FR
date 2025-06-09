@@ -1,5 +1,8 @@
 from django.views.generic import ListView, DetailView
 from .models import Profile
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ProfileListView(ListView):
