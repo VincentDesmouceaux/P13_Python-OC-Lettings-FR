@@ -13,6 +13,10 @@ class Address(models.Model):
     def __str__(self) -> str:  # noqa: D401 – simple representation
         return f"{self.number} {self.street}"
 
+    class Meta:                          # ← AJOUT
+        verbose_name = "Address"
+        verbose_name_plural = "Addresses"
+
 
 class Letting(models.Model):
     title = models.CharField(max_length=256)

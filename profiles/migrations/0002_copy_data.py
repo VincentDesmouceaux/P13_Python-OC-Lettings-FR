@@ -1,14 +1,15 @@
+# profiles/migrations/0002_copy_data.py
 from django.db import migrations
 
 
-def forwards(apps, schema_editor):
-    OldProfile = apps.get_model("oc_lettings_site", "Profile")
-    NewProfile = apps.get_model("profiles", "Profile")
-
-    for old in OldProfile.objects.all():
-        NewProfile.objects.create(user_id=old.user_id, favorite_city=old.favorite_city)
+def noop(apps, schema_editor):
+    """Migration neutralisée : plus de données à copier depuis l’app legacy."""
+    return
 
 
 class Migration(migrations.Migration):
-    dependencies = [("profiles", "0001_initial")]
-    operations = [migrations.RunPython(forwards, migrations.RunPython.noop)]
+    dependencies = [
+        ("profiles", "0001_initial"),
+    ]
+    elidable = True
+    operations = [migrations.RunPython(noop, noop)]
