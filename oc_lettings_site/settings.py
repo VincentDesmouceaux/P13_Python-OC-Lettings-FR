@@ -79,12 +79,13 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "lettings.apps.LettingsConfig",
     "profiles.apps.ProfilesConfig",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+
 ]
 
 # ----- MIDDLEWARE -----
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -137,12 +138,17 @@ USE_I18N = True
 USE_TZ = True           # USE_L10N a été supprimé depuis Django 4.0
 
 # ----- FICHIERS STATIQUES -----
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = (
-    "whitenoise.storage.CompressedManifestStaticFilesStorage"
-)
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+WHITENOISE_MANIFEST_STRICT = False  # Add this line
 
 
 # ----- DJANGO 4.2+ : champ auto par défaut -----
