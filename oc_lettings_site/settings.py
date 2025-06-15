@@ -5,7 +5,7 @@ Django 4.2 / Python 3.12
 
 • Toutes les valeurs dépendantes de l’environnement sont lues via `os.getenv`
   (12-factor).
-• Sentry est initialisé si – et seulement si – `SENTRY_DSN` est présent.  
+• Sentry est initialisé si – et seulement si – `SENTRY_DSN` est présent.
 • Un **seul** bloc LOGGING : – aucune re-définition – afin d’éviter les
   erreurs `Unable to configure formatter 'standard'`.
 """
