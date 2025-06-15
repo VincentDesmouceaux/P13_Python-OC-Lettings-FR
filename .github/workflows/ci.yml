@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI – tests & lint
 
 on:
@@ -15,6 +14,9 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    # Variable d'environnement pour Sentry disponible dans **toutes** les étapes
+    env:
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
     strategy:
       matrix:
