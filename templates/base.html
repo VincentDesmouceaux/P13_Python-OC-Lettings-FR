@@ -19,6 +19,17 @@
 
     <!-- Logo / favicon -->
     <link rel="icon" type="image/x-icon" href="{% static 'assets/img/logo.png' %}" />
+    {% if SENTRY_DSN %}
+        <script src="https://browser.sentry-cdn.com/7.114.0/bundle.tracing.min.js"
+                crossorigin="anonymous"></script>
+        <script>
+            Sentry.init({
+                dsn: "{{ SENTRY_DSN }}",
+                integrations: [new Sentry.BrowserTracing()],
+                tracesSampleRate: 0.1
+            });
+        </script>
+    {% endif %}
 </head>
 <body>
 <div id="layoutDefault">
