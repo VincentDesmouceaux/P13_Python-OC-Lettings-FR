@@ -62,7 +62,7 @@ LOGGING = {
 # ----- BASE -----
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "fp$9^593hsriajg$_%=5trot9g!1qa@ew(o-1#@=&4%=hp46(s"
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ["*"]   # le temps des tests
 
 
@@ -138,6 +138,7 @@ USE_TZ = True           # USE_L10N a été supprimé depuis Django 4.0
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 # ----- DJANGO 4.2+ : champ auto par défaut -----
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
