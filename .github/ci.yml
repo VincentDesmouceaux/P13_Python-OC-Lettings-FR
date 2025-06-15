@@ -1,0 +1,53 @@
+# .github/workflows/ci.yml
+name: CI - tests & lint
+
+on:
+  push:
+    branches: ["*", "!master"]   # toutes les branches Sauf master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      # 1) Récupération du code
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      # 2) Environnement Python
+      - name: Set-up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # 3) Cache pip (plus rapide sur les pushes suivants)
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # 4) Installation des dépendances
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 pytest-cov
+
+      # 5) Linting
+      - name: Run flake8
+        run: |
+          flake8 .
+      
+      # 6) Tests + couverture
+      - name: Run pytest with coverage
+        run: |
+          pytest --cov=. --cov-report=xml --cov-fail-under=80
