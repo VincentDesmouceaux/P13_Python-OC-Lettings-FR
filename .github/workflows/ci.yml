@@ -1,10 +1,15 @@
 # .github/workflows/ci.yml
-name: CI - tests & lint
+name: CI – tests & lint
 
 on:
+  # ➜ déclenche-ment à CHAQUE push sur n’importe quelle branche
   push:
-    branches: ["*", "!master"]   # toutes les branches Sauf master
+    branches: ["*"]
+
+  # ➜ déclenche-ment sur les PR aussi (utile pour les forks)
   pull_request:
+
+  # ➜ exécution manuelle depuis l’onglet Actions
   workflow_dispatch:
 
 jobs:
@@ -26,7 +31,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # 3) Cache pip (plus rapide sur les pushes suivants)
+      # 3) Cache pip
       - name: Cache pip
         uses: actions/cache@v4
         with:
@@ -44,10 +49,8 @@ jobs:
 
       # 5) Linting
       - name: Run flake8
-        run: |
-          flake8 .
-      
-      # 6) Tests + couverture
+        run: flake8 .
+
+      # 6) Tests + couverture (>80 % obligatoire)
       - name: Run pytest with coverage
-        run: |
-          pytest --cov=. --cov-report=xml --cov-fail-under=80
+        run: pytest --cov=. --cov-report=xml --cov-fail-under=80
