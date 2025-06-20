@@ -26,11 +26,21 @@ except ModuleNotFoundError:
 DEBUG = True if 'runserver' in sys.argv else os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 RUNNING_TESTS = "pytest" in sys.argv[0] or "test" in sys.argv
 
-# ─────────── CLÉS & HOSTS ───────────
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
-ALLOWED_HOSTS = os.getenv(
-    "DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost"
-).split(",")
+# ─────────── CLÉS & HOSTS ────────────────────────────────────────────────
+# Aucune valeur par défaut ici : en DEV on utilise .env,
+# en CI/PROD on passe les variables au conteneur.
+try:
+    SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+except KeyError:            # clé manquante ⇒ plantage immédiat
+    raise RuntimeError("⚠️  DJANGO_SECRET_KEY n'est pas défini (voir .env)")
+
+raw_hosts = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
+
+# petite aide pour le mode runserver : si on oublie la variable, on autorise
+# quand même localhost/0.0.0.0, mais UNIQUEMENT quand DEBUG=True
+if DEBUG and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["127.0.0.1", "0.0.0.0", "localhost"]
 
 # ─────────── APPS & MIDDLEWARE (sans WhiteNoise) ───────────
 INSTALLED_APPS = [
