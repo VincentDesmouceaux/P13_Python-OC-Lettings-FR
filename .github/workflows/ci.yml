@@ -1,16 +1,16 @@
 name: CI – tests & lint
 
 on:
-  push:              # toute branche
+  push:               # toutes les branches
     branches: ["*"]
-  pull_request:      # PR externes
-  workflow_dispatch:
+  pull_request:       # PR externes
+  workflow_dispatch:  # exécution manuelle
 
 jobs:
   tests:
     runs-on: ubuntu-latest
 
-  
+    # Variable dispo dans tout le job
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
@@ -19,6 +19,13 @@ jobs:
         python-version: ["3.12"]
 
     steps:
+      - name: ❌ Stop si le secret SENTRY_DSN est absent
+        # Ce step ne s’exécute QUE si le secret est vide
+        if: ${{ !secrets.SENTRY_DSN }}
+        run: |
+          echo "::error ::Le secret SENTRY_DSN n'est pas défini dans ce dépôt !"
+          exit 1
+
       - name: Checkout sources
         uses: actions/checkout@v4
 
