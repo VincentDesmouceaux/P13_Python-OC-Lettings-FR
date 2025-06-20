@@ -1,16 +1,15 @@
 name: CI – tests & lint
 
 on:
-  push:               # toutes les branches
+  push:
     branches: ["*"]
-  pull_request:       # PR externes
-  workflow_dispatch:  # exécution manuelle
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   tests:
     runs-on: ubuntu-latest
 
-    # Variable dispo dans tout le job
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
@@ -19,21 +18,24 @@ jobs:
         python-version: ["3.12"]
 
     steps:
-      - name: ❌ Stop si le secret SENTRY_DSN est absent
-        # Ce step ne s’exécute QUE si le secret est vide
-        if: ${{ !secrets.SENTRY_DSN }}
+      # 0) stop net si le secret n’existe pas
+      - name: Stop si SENTRY_DSN est manquant
+        if: ${{ secrets.SENTRY_DSN == '' }}
         run: |
-          echo "::error ::Le secret SENTRY_DSN n'est pas défini dans ce dépôt !"
+          echo "::error::Le secret SENTRY_DSN n'est pas défini"
           exit 1
 
+      # 1) checkout
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      # 2) Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
+      # 3) cache pip
       - name: Cache pip
         uses: actions/cache@v4
         with:
@@ -42,14 +44,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
+      # 4) install deps
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install flake8 pytest-cov
 
+      # 5) lint
       - name: Lint (flake8)
         run: flake8 .
 
+      # 6) tests
       - name: Run tests with coverage
         run: pytest --cov=. --cov-report=xml --cov-fail-under=80
