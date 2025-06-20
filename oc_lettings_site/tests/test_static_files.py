@@ -1,14 +1,13 @@
 """
 Version simplifiée et robuste du test des fichiers statiques
 """
-import re
+
 import tempfile
 from pathlib import Path
 
-from django.conf import settings
+
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from django.views.static import serve as dj_static_serve
 
 
 class StaticFilesLoadedTest(TestCase):

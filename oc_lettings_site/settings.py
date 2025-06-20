@@ -9,10 +9,9 @@ Django 4.2 – configuration **uniquement DEV / TEST**.
 from __future__ import annotations
 import os
 import sys
-import logging
 from pathlib import Path
 from typing import Any, Dict
-from django.core.management.utils import get_random_secret_key
+
 
 # ─────────── BASE / .env ───────────
 BASE_DIR = Path(__file__).resolve().parent.parent
