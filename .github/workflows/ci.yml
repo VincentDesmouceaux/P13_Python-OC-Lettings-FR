@@ -10,8 +10,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
 
-    # variables d’environnement disponibles dans TOUTES les étapes du job
-    # (laisse-les si, dans tes Secrets, tu as bien ajouté SENTRY_DSN)
+  
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
