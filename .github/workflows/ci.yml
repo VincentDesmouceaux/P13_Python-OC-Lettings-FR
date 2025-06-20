@@ -1,20 +1,17 @@
 name: CI – tests & lint
 
 on:
-  # ➜ déclenche-ment à CHAQUE push sur n’importe quelle branche
-  push:
+  push:              # toute branche
     branches: ["*"]
-
-  # ➜ déclenche-ment sur les PR aussi (utile pour les forks)
-  pull_request:
-
-  # ➜ exécution manuelle depuis l’onglet Actions
+  pull_request:      # PR externes
   workflow_dispatch:
 
 jobs:
   tests:
     runs-on: ubuntu-latest
-    # Variable d'environnement pour Sentry disponible dans **toutes** les étapes
+
+    # variables d’environnement disponibles dans TOUTES les étapes du job
+    # (laisse-les si, dans tes Secrets, tu as bien ajouté SENTRY_DSN)
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
@@ -23,17 +20,14 @@ jobs:
         python-version: ["3.12"]
 
     steps:
-      # 1) Récupération du code
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      # 2) Environnement Python
-      - name: Set-up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      # 3) Cache pip
       - name: Cache pip
         uses: actions/cache@v4
         with:
@@ -42,17 +36,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # 4) Installation des dépendances
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install flake8 pytest-cov
 
-      # 5) Linting
-      - name: Run flake8
+      - name: Lint (flake8)
         run: flake8 .
 
-      # 6) Tests + couverture (>80 % obligatoire)
-      - name: Run pytest with coverage
+      - name: Run tests with coverage
         run: pytest --cov=. --cov-report=xml --cov-fail-under=80

@@ -1,155 +1,103 @@
 """
-Django settings for oc_lettings_site (compatible Django 4.2 LTS / Python 3.12).
-Seules les options utiles au projet de démonstration sont conservées.
+Django 4.2 – configuration **uniquement DEV / TEST**.
+
+• DEBUG est toujours à True (sauf si DJANGO_DEBUG=false explicitement).
+• AUCUN ManifestStaticFilesStorage → plus d’erreurs « Missing manifest ».
+• Pas de WhiteNoise ; runserver sert /static/ directement.
 """
 
-from pathlib import Path
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
+from __future__ import annotations
 import os
+import sys
+import logging
+from pathlib import Path
+from typing import Any, Dict
+from django.core.management.utils import get_random_secret_key
 
-SENTRY_DSN = os.getenv("SENTRY_DSN", None)
-if SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[DjangoIntegration()],
-        # Capture 100% des erreurs en prod (ajustez en fonction de votre plan)
-        traces_sample_rate=1.0,
-        send_default_pii=False,  # ne pas envoyer d’info personnelle
-    )
-
-# oc_lettings_site/settings.py
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "standard": {
-            "format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s"
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "standard",
-        },
-        # Sentry captera automatiquement les erreurs via DjangoIntegration
-    },
-    "loggers": {
-        "": {  # logger racine
-            "handlers": ["console"],
-            "level": "INFO",
-        },
-        "django.request": {
-            "handlers": ["console"],
-            "level": "ERROR",  # on logge les 500
-            "propagate": False,
-        },
-        "lettings": {
-            "handlers": ["console"],
-            "level": "DEBUG",  # ou INFO en prod
-            "propagate": True,
-        },
-        "profiles": {
-            "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": True,
-        },
-    },
-}
-
-
-# ----- BASE -----
+# ─────────── BASE / .env ───────────
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = "fp$9^593hsriajg$_%=5trot9g!1qa@ew(o-1#@=&4%=hp46(s"
-DEBUG = False
-ALLOWED_HOSTS = ["*"]   # le temps des tests
+try:
+    from dotenv import load_dotenv   # type: ignore
+    load_dotenv(BASE_DIR / ".env", override=False)
+except ModuleNotFoundError:
+    pass
 
+# ─────────── DEBUG toujours True sauf si override ───────────
+DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
+RUNNING_TESTS = "pytest" in sys.argv[0] or "test" in sys.argv
 
-# ----- APPLICATIONS -----
+# ─────────── CLÉS & HOSTS ───────────
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
+ALLOWED_HOSTS = os.getenv(
+    "DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost"
+).split(",")
+
+# ─────────── APPS & MIDDLEWARE (sans WhiteNoise) ───────────
 INSTALLED_APPS = [
-    # Apps projet (on ajoutera lettings & profiles plus tard)
-    "oc_lettings_site.apps.OCLettingsSiteConfig",
-    # Django core
+    "oc_lettings_site",
+    "lettings",
+    "profiles",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "lettings.apps.LettingsConfig",
-    "profiles.apps.ProfilesConfig",
-
 ]
-
-# ----- MIDDLEWARE -----
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 ROOT_URLCONF = "oc_lettings_site.urls"
 WSGI_APPLICATION = "oc_lettings_site.wsgi.application"
 
-# ----- TEMPLATES -----
-TEMPLATES = [
-    {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],          # dossier global
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-            ],
-        },
+# ─────────── TEMPLATES ───────────
+TEMPLATES: list[Dict[str, Any]] = [{
+    "BACKEND": "django.template.backends.django.DjangoTemplates",
+    "DIRS": [BASE_DIR / "templates"],
+    "APP_DIRS": True,
+    "OPTIONS": {
+        "context_processors": [
+            "django.template.context_processors.debug",
+            "django.template.context_processors.request",
+            "django.contrib.auth.context_processors.auth",
+            "django.contrib.messages.context_processors.messages",
+        ],
     },
-]
+}]
 
-# ----- BASE DE DONNÉES -----
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "oc-lettings-site.sqlite3",
-    }
-}
+# ─────────── DB / I18N ───────────
+DATABASES = {"default": {
+    "ENGINE": "django.db.backends.sqlite3",
+    "NAME": BASE_DIR / "oc-lettings-site.sqlite3",
+}}
+LANGUAGE_CODE, TIME_ZONE = "en-us", "UTC"
+USE_I18N = USE_TZ = True
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ----- AUTH / SÉCURITÉ -----
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-]
-
-# ----- INTERNATIONALISATION -----
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
-USE_I18N = True
-USE_TZ = True           # USE_L10N a été supprimé depuis Django 4.0
-
-# ----- FICHIERS STATIQUES -----
-
-BASE_DIR = Path(__file__).resolve().parent.parent
+# ─────────── STATIC : stockage simple, pas de manifest ───────────
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / "staticfiles"        # utilisable si tu veux quand même collectstatic
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
+# ─────────── LOGGING simple ───────────
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOGGING: Dict[str, Any] = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+}
 
-WHITENOISE_MANIFEST_STRICT = False  # Add this line
-
-
-# ----- DJANGO 4.2+ : champ auto par défaut -----
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+print(
+    f"=== MODE DEV – DEBUG={DEBUG} – STATICFILES_STORAGE={STORAGES['staticfiles']['BACKEND']} ===")
