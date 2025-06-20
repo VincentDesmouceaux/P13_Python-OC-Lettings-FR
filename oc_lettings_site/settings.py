@@ -1,61 +1,69 @@
 """
-Django 4.2 – configuration **uniquement DEV / TEST**.
-
-• DEBUG est toujours à True (sauf si DJANGO_DEBUG=false explicitement).
-• AUCUN ManifestStaticFilesStorage → plus d’erreurs « Missing manifest ».
-• Pas de WhiteNoise ; runserver sert /static/ directement.
+Fichier unique : DEV par défaut – PROD si DJANGO_DEBUG=false
+Django 4.2 • Python 3.12
 """
 
 from __future__ import annotations
 import os
 import sys
+import logging
 from pathlib import Path
 from typing import Any, Dict
 
-
-# ─────────── BASE / .env ───────────
+# ───────────────────────── 1. BASE & .env ─────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 try:
-    from dotenv import load_dotenv   # type: ignore
+    from dotenv import load_dotenv                # ≠ obligatoire en prod
     load_dotenv(BASE_DIR / ".env", override=False)
 except ModuleNotFoundError:
     pass
 
-# ─────────── DEBUG toujours True sauf si override ───────────
-# Correction : FORCER DEBUG=True en mode développement
-DEBUG = True if 'runserver' in sys.argv else os.getenv("DJANGO_DEBUG", "true").lower() == "true"
+# ───────────────────────── 2. CONTEXTE ────────────────────────────
+RUNSERVER = "runserver" in sys.argv
 RUNNING_TESTS = "pytest" in sys.argv[0] or "test" in sys.argv
+DEBUG = (
+    os.getenv("DJANGO_DEBUG", "").lower() == "true"             # variable explicite
+    or (RUNSERVER and "DJANGO_DEBUG" not in os.environ)  # runserver sans var  → DEV
+    or RUNNING_TESTS  # tests toujours DEV
+)
 
-# ─────────── CLÉS & HOSTS ────────────────────────────────────────────────
-# Aucune valeur par défaut ici : en DEV on utilise .env,
-# en CI/PROD on passe les variables au conteneur.
-try:
-    SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
-except KeyError:            # clé manquante ⇒ plantage immédiat
-    raise RuntimeError("⚠️  DJANGO_SECRET_KEY n'est pas défini (voir .env)")
+# ───────────────────────── 3. CLÉS & HOSTS ───────────────────────
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "dev-secret"
+        logging.warning("⚠️  SECRET_KEY de développement utilisée.")
+    else:
+        raise RuntimeError("DJANGO_SECRET_KEY manquant !")
 
-raw_hosts = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
+# liste d’hôtes autorisés
+raw_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
 
-# petite aide pour le mode runserver : si on oublie la variable, on autorise
-# quand même localhost/0.0.0.0, mais UNIQUEMENT quand DEBUG=True
-if DEBUG and not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ["127.0.0.1", "0.0.0.0", "localhost"]
+# Confort : runserver en « prod » → on ajoute localhost/0.0.0.0
+if RUNSERVER and not DEBUG:
+    for h in ("127.0.0.1", "0.0.0.0", "localhost"):
+        if h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(h)
 
-# ─────────── APPS & MIDDLEWARE (sans WhiteNoise) ───────────
+if not DEBUG and not ALLOWED_HOSTS:
+    raise RuntimeError("En production, DJANGO_ALLOWED_HOSTS ne peut pas être vide.")
+
+# ───────────────────────── 4. APPS / MIDDLEWARE ──────────────────
 INSTALLED_APPS = [
-    "oc_lettings_site",
-    "lettings",
-    "profiles",
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
+    "oc_lettings_site", "lettings", "profiles",
+    "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
+    "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
 ]
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
+
+MIDDLEWARE = ["django.middleware.security.SecurityMiddleware"]
+
+# WhiteNoise uniquement quand on est **réellement** en prod (pas runserver)
+PROD = not DEBUG and not RUNSERVER and not RUNNING_TESTS
+if PROD:
+    MIDDLEWARE.append("whitenoise.middleware.WhiteNoiseMiddleware")
+
+MIDDLEWARE += [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -67,7 +75,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = "oc_lettings_site.urls"
 WSGI_APPLICATION = "oc_lettings_site.wsgi.application"
 
-# ─────────── TEMPLATES ───────────
+# ───────────────────────── 5. TEMPLATES ──────────────────────────
 TEMPLATES: list[Dict[str, Any]] = [{
     "BACKEND": "django.template.backends.django.DjangoTemplates",
     "DIRS": [BASE_DIR / "templates"],
@@ -82,29 +90,31 @@ TEMPLATES: list[Dict[str, Any]] = [{
     },
 }]
 
-# ─────────── DB / I18N ───────────
-DATABASES = {"default": {
-    "ENGINE": "django.db.backends.sqlite3",
-    "NAME": BASE_DIR / "oc-lettings-site.sqlite3",
-}}
+# ───────────────────────── 6. BDD / I18N ─────────────────────────
+DATABASES = {
+    "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "oc-lettings-site.sqlite3"}
+}
 LANGUAGE_CODE, TIME_ZONE = "en-us", "UTC"
 USE_I18N = USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ─────────── STATIC : configuration corrigée ───────────
+# ───────────────────────── 7. STATIC ─────────────────────────────
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-# Correction : STATIC_ROOT doit être différent de STATICFILES_DIRS
-STATIC_ROOT = BASE_DIR / "static_collected"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Correction : Configuration de stockage simplifiée
-STORAGES = {
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
+if PROD:
+    STORAGES = {
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+    WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+    WHITENOISE_MANIFEST_STRICT = True
+else:
+    STORAGES = {
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
 
-# ─────────── LOGGING simple ───────────
+# ───────────────────────── 8. LOGGING ────────────────────────────
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING: Dict[str, Any] = {
     "version": 1,
@@ -113,10 +123,34 @@ LOGGING: Dict[str, Any] = {
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
 }
 
-# Correction : Forcer DEBUG=True si le serveur est lancé avec runserver
-if 'runserver' in sys.argv and not DEBUG:
-    DEBUG = True
-    print("!!! DEBUG forcé à True pour le serveur de développement !!!")
+# ───────────────────────── 9. SENTRY (optionnel) ────────────────
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
 
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration(),
+                          LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)],
+            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE", "0.1")),
+            environment="development" if DEBUG else "production",
+            send_default_pii=False,
+        )
+    except ModuleNotFoundError:
+        logging.warning("sentry-sdk absent : Sentry désactivé")
+
+# ───────────────────────── 10. DIAGNOSTIC ────────────────────────
 print(
-    f"=== MODE DEV – DEBUG={DEBUG} – STATICFILES_STORAGE={STORAGES['staticfiles']['BACKEND']} ===")
+    "\n".join([
+        "=" * 80,
+        f"Mode           : {'PROD' if PROD else 'DEV/TEST'}",
+        f"DEBUG          : {DEBUG}",
+        f"RUNSERVER      : {RUNSERVER}",
+        f"Static backend : {STORAGES['staticfiles']['BACKEND']}",
+        f"ALLOWED_HOSTS  : {ALLOWED_HOSTS}",
+        "=" * 80,
+    ])
+)

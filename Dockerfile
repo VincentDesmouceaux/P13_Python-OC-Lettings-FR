@@ -1,20 +1,26 @@
-# Dockerfile ----------------------------------------------------------
-FROM python:3.12-slim
+# ────────────────────────────────────────────────────────────────
+FROM python:3.12-slim-bullseye
 
-# 1. ENV de base (pas les secrets !) 
-ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+# Update system packages to address vulnerabilities
+RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 \
+    PORT=8000
 
 WORKDIR /app
 
-# 2. Dépendances
+# 1. Dépendances
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# 3. Code source
+# 2. Code
 COPY . .
 
-# 4. Port exposé
-EXPOSE 8000
+# 3. Collecte statique **uniquement** à l’image (DJANGO_DEBUG=false implicite)
+ENV DJANGO_DEBUG=false
+RUN python manage.py collectstatic --noinput
 
-# 5. Commande – on laisse la charge à python-dotenv de lire .env **au runtime**
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+EXPOSE ${PORT}
+
+# 4. Démarrage (gunicorn → prod)
+CMD ["gunicorn", "oc_lettings_site.wsgi:application", "-b", "0.0.0.0:8000"]
