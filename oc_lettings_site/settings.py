@@ -22,7 +22,8 @@ except ModuleNotFoundError:
     pass
 
 # ─────────── DEBUG toujours True sauf si override ───────────
-DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
+# Correction : FORCER DEBUG=True en mode développement
+DEBUG = True if 'runserver' in sys.argv else os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 RUNNING_TESTS = "pytest" in sys.argv[0] or "test" in sys.argv
 
 # ─────────── CLÉS & HOSTS ───────────
@@ -80,13 +81,17 @@ LANGUAGE_CODE, TIME_ZONE = "en-us", "UTC"
 USE_I18N = USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ─────────── STATIC : stockage simple, pas de manifest ───────────
+# ─────────── STATIC : configuration corrigée ───────────
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"        # utilisable si tu veux quand même collectstatic
+# Correction : STATIC_ROOT doit être différent de STATICFILES_DIRS
+STATIC_ROOT = BASE_DIR / "static_collected"
+
+# Correction : Configuration de stockage simplifiée
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
 }
 
 # ─────────── LOGGING simple ───────────
@@ -97,6 +102,11 @@ LOGGING: Dict[str, Any] = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
 }
+
+# Correction : Forcer DEBUG=True si le serveur est lancé avec runserver
+if 'runserver' in sys.argv and not DEBUG:
+    DEBUG = True
+    print("!!! DEBUG forcé à True pour le serveur de développement !!!")
 
 print(
     f"=== MODE DEV – DEBUG={DEBUG} – STATICFILES_STORAGE={STORAGES['staticfiles']['BACKEND']} ===")
