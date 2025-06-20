@@ -1,4 +1,4 @@
-name: CI – tests & lint
+name: CI – Tests & Lint
 
 on:
   push:
@@ -9,34 +9,23 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
-
-    env:
-      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-
     strategy:
       matrix:
         python-version: ["3.12"]
-
+    
     steps:
-      # 0) stop net si le secret n’existe pas
-      - name: Stop si SENTRY_DSN est manquant
-        if: ${{ secrets.SENTRY_DSN == '' }}
-        run: |
-          echo "::error::Le secret SENTRY_DSN n'est pas défini"
-          exit 1
-
-      # 1) checkout
-      - name: Checkout sources
+      # 1) Checkout du code
+      - name: Checkout des sources
         uses: actions/checkout@v4
 
-      # 2) Python
-      - name: Setup Python
+      # 2) Configuration Python
+      - name: Configurer Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      # 3) cache pip
-      - name: Cache pip
+      # 3) Cache des dépendances pip
+      - name: Mise en cache des dépendances
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
@@ -44,17 +33,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # 4) install deps
-      - name: Install dependencies
+      # 4) Installation des dépendances
+      - name: Installer les dépendances
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install flake8 pytest-cov
+          pip install -r requirements.txt flake8 pytest-cov
 
-      # 5) lint
-      - name: Lint (flake8)
+      # 5) Vérification de la syntaxe
+      - name: Exécuter Flake8 (linting)
         run: flake8 .
 
-      # 6) tests
-      - name: Run tests with coverage
+      # 6) Exécution des tests avec couverture
+      - name: Exécuter les tests (pytest)
         run: pytest --cov=. --cov-report=xml --cov-fail-under=80
