@@ -92,7 +92,13 @@ TEMPLATES: list[Dict[str, Any]] = [{
 
 # ───────────────────────── 6. BDD / I18N ─────────────────────────
 DATABASES = {
-    "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "oc-lettings-site.sqlite3"}
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": (
+            BASE_DIR
+            / "oc-lettings-site.sqlite3"
+        ),
+    },
 }
 LANGUAGE_CODE, TIME_ZONE = "en-us", "UTC"
 USE_I18N = USE_TZ = True
@@ -133,9 +139,16 @@ if SENTRY_DSN:
 
         sentry_sdk.init(
             dsn=SENTRY_DSN,
-            integrations=[DjangoIntegration(),
-                          LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)],
-            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE", "0.1")),
+            integrations=[
+                DjangoIntegration(),
+                LoggingIntegration(
+                    level=logging.INFO,
+                    event_level=logging.ERROR,
+                ),
+            ],
+            traces_sample_rate=float(
+                os.getenv("SENTRY_TRACES_SAMPLE", "0.1")
+            ),
             environment="development" if DEBUG else "production",
             send_default_pii=False,
         )
