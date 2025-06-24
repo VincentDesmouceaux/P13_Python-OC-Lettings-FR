@@ -4,17 +4,17 @@ __pycache__/
 
 # ---- Environnement virtuel ------------------------------------
 venv/
-.env                     # jamais copié dans l’image : on le monte au run
+.env               # jamais dans l’image !
 
 # ---- Git / CI -------------------------------------------------
 .git/
 .github/
-*.log
 .coverage
 htmlcov/
-**/migrations/*          # les migrations n’ont pas besoin d’être copiées
+*.log
+**/migrations/*    # pas utiles dans l’image
 
-# ---- Systèmes -------------------------------------------------
+# ---- IDE / OS -------------------------------------------------
 .DS_Store
 .idea/
 .vscode/
