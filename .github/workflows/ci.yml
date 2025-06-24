@@ -1,4 +1,4 @@
-name: CI – Tests & Lint
+name: CI – tests, lint, build & push
 
 on:
   push:
@@ -6,43 +6,47 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
+
 jobs:
-  tests:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.12"]
-    
     steps:
-      # 1) Checkout du code
-      - name: Checkout des sources
-        uses: actions/checkout@v4
-
-      # 2) Configuration Python
-      - name: Configurer Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      # 3) Cache des dépendances pip
-      - name: Mise en cache des dépendances
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      # 4) Installation des dépendances
-      - name: Installer les dépendances
-        run: |
+          restore-keys: ${{ runner.os }}-pip-
+      - run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
+      - run: flake8 .
+      - run: pytest --cov=. --cov-report=xml --cov-fail-under=80
 
-      # 5) Vérification de la syntaxe
-      - name: Exécuter Flake8 (linting)
-        run: flake8 .
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Connexion Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 6) Exécution des tests avec couverture
-      - name: Exécuter les tests (pytest)
-        run: pytest --cov=. --cov-report=xml --cov-fail-under=80
+      - name: Build & push
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          context: .
