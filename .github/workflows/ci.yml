@@ -1,10 +1,7 @@
+# .github/workflows/ci.yml
 name: CI – tests, lint, build & push
 
-on:
-  push:
-    branches: ["*"]
-  pull_request:
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
@@ -12,29 +9,26 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         python-version: ["3.12"]
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set-up Python
+      - name: setup-python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache pip
+      - name: cache-pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          restore-keys: ${{ runner.os }}-pip-
 
-      - name: Install deps, lint & tests
+      - name: install-lint-test
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
@@ -44,22 +38,30 @@ jobs:
   docker:
     needs: test
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Log-in to Docker Hub
+      - name: setup-qemu
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+
+      - name: setup-buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      - name: login-dockerhub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push multi-arch image
+      - name: build-and-push
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -68,3 +70,5 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
