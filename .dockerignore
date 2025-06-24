@@ -1,0 +1,20 @@
+# ---- Python ---------------------------------------------------
+*.py[cod]
+__pycache__/
+
+# ---- Environnement virtuel ------------------------------------
+venv/
+.env                     # jamais copié dans l’image : on le monte au run
+
+# ---- Git / CI -------------------------------------------------
+.git/
+.github/
+*.log
+.coverage
+htmlcov/
+**/migrations/*          # les migrations n’ont pas besoin d’être copiées
+
+# ---- Systèmes -------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
