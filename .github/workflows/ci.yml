@@ -4,11 +4,7 @@ name: CI – tests, lint, build & push
 ###############################################################################
 # Déclencheurs
 ###############################################################################
-on:
-  push:
-    branches: ["*"]
-  pull_request:
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
 ###############################################################################
 # Variables globales (jamais de secrets en clair)
@@ -17,12 +13,11 @@ env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
 
 ###############################################################################
-# 1) Lint + tests Python
+# 1) Lint + tests
 ###############################################################################
 jobs:
   test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         python-version: ["3.12"]
@@ -42,7 +37,7 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: ${{ runner.os }}-pip-
 
-      - name: install-lint-test
+      - name: lint+tests
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
@@ -50,10 +45,10 @@ jobs:
           pytest --cov=. --cov-report=xml --cov-fail-under=80
 
 ###############################################################################
-# 2) Build multi-arch & push sur Docker Hub
+# 2) Build, smoke-test, push (multi-arch)
 ###############################################################################
   docker:
-    needs: test            # ← n’exécute que si « test » passe
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -62,33 +57,51 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1️⃣  QEMU : émulation ARM pour le build multi-arch
-      - name: setup-qemu
-        uses: docker/setup-qemu-action@v3
+      # 1️⃣ QEMU : émulation ARM
+      - uses: docker/setup-qemu-action@v3
 
-      # 2️⃣  Buildx dédié en mode « docker-container » (multi-platform OK)
-      - name: setup-buildx
-        uses: docker/setup-buildx-action@v3
+      # 2️⃣ Buildx (driver docker-container)
+      - uses: docker/setup-buildx-action@v3
         with:
-          driver: docker-container          # indispensable pour linux/arm64
+          driver: docker-container
           buildkitd-flags: --debug
 
-      # 3️⃣  Login Docker Hub
-      - name: login-dockerhub
-        uses: docker/login-action@v3
+      #######################################################################
+      # 3️⃣ Build local & smoke-test
+      #######################################################################
+      - name: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true                     # ← charge l’image dans le daemon local
+          tags: |
+            smoke:test                  # ← **la valeur est maintenant entre |**
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: smoke test container
+        run: |
+          docker run -d --name smoke -e DJANGO_DEBUG=false -p 8000:8000 smoke:test
+          sleep 15
+          curl -sf http://localhost:8000/ | grep -qi "Holiday Homes"
+          docker rm -f smoke
+
+      #######################################################################
+      # 4️⃣ Login & push multi-arch
+      #######################################################################
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4️⃣  Build & push
       - name: build-and-push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64   # ← image multi-arch
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          cache-from: type=gha                  # accélère les rebuilds
+          cache-from: type=gha
           cache-to: type=gha,mode=max
