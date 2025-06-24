@@ -33,12 +33,12 @@ PROD = not DEBUG and not RUNSERVER and not RUNNING_TESTS
 # ─────────────────── 2. secrets & hosts ────────────────────────────────
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY") or "dev-secret"
 ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv(
-        "DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,0.0.0.0"
-    ).split(",")
-    if host.strip()
+    host.strip() for host in os.getenv(
+        "DJANGO_ALLOWED_HOSTS",
+        "127.0.0.1,localhost,0.0.0.0"      # valeur par défaut uniquement en dev
+    ).split(",") if host.strip()
 ]
+
 if RUNSERVER and not DEBUG:
     ALLOWED_HOSTS += ["127.0.0.1", "0.0.0.0", "localhost"]
 
