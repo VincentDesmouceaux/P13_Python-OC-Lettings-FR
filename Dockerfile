@@ -1,7 +1,7 @@
 # ────────────────────────────────────────────────────────────────
 # Image unique ~150 Mo (compressée) pour Django 4.2 / Python 3.12
 # ────────────────────────────────────────────────────────────────
-FROM python:3.12-slim-bullseye
+FROM python:3.12-slim-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/vincentdesmouceaux/P13_Python-OC-Lettings-FR"
 
