@@ -86,22 +86,24 @@ jobs:
 ###############################################################################
 # 3) Déploiement Northflank – seulement si build OK
 ###############################################################################
-  deploy:
-    needs: docker
-    if: needs.docker.result == 'success'
-    runs-on: ubuntu-latest
+# Modifier uniquement le job 'deploy'
+deploy:
+  needs: docker
+  if: needs.docker.result == 'success'
+  runs-on: ubuntu-latest
 
-    steps:
-      - name: Trigger redeploy on Northflank
-        env:
-          NF_API_TOKEN:  ${{ secrets.NORTHFLANK_TOKEN }}     # PAT
-          NF_PROJECT:    ${{ secrets.NORTHFLANK_PROJECT }}   # slug projet NF
-          NF_SERVICE:    ${{ secrets.NORTHFLANK_SERVICE }}   # slug service NF
-          IMAGE_TAG:     latest                              # ou github.sha
-        run: |
-          set -euo pipefail
-          curl -sSf -X POST \
-            "https://api.northflank.com/v1/projects/${NF_PROJECT}/services/${NF_SERVICE}/deployments" \
-            -H "Authorization: Bearer ${NF_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "{\"image\": {\"tag\": \"${IMAGE_TAG}\"}, \"reason\": \"GitHub Action auto-deploy\"}"
+  steps:
+    - name: Trigger redeploy on Northflank
+      env:
+        NF_API_TOKEN:  ${{ secrets.NORTHFLANK_TOKEN }}
+        NF_PROJECT:    ${{ secrets.NORTHFLANK_PROJECT }}   # Doit être le slug du projet
+        NF_SERVICE:    ${{ secrets.NORTHFLANK_SERVICE }}   # Doit être le slug du service
+        IMAGE_TAG:     latest
+      run: |
+        set -euo pipefail
+        # Utiliser les endpoints 'by-slug' dans l'URL
+        curl -sSf -X POST \
+          "https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deployments" \
+          -H "Authorization: Bearer ${NF_API_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -d "{\"image\": {\"tag\": \"${IMAGE_TAG}\"}, \"reason\": \"GitHub Action auto-deploy\"}"
