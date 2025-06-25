@@ -17,8 +17,8 @@ except ModuleNotFoundError:
 # ─────────────── variables globales ─────────────
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
-GIT_SHA = os.getenv("GIT_SHA", "unknown")            # ← injecté au build
-APP_START = datetime.datetime.utcnow().isoformat()   # horodatage du boot
+GIT_SHA = os.getenv("GIT_SHA", "unknown")
+APP_START = datetime.datetime.utcnow().isoformat()
 
 INSTALLED_APPS = [
     "oc_lettings_site",
@@ -30,7 +30,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "oc_lettings_site.apps.OCLettingsSiteConfig",
 ]
 
 MIDDLEWARE = [
@@ -114,10 +113,10 @@ print(
     "\n".join(
         [
             "=" * 80,
-            f"Mode           : {'PROD' if 'prod' in os.getenv('DJANGO_SETTINGS_MODULE', '') else 'DEV'}",
-            f"Git commit     : {GIT_SHA}",
-            f"Started at UTC : {APP_START}",
-            f"Templates dir  : {BASE_DIR / 'templates'}",
+            f"Mode        : {'PROD' if 'prod' in os.getenv('DJANGO_SETTINGS_MODULE', '') else 'DEV'}",
+            f"Git commit  : {GIT_SHA}",
+            f"Start (UTC) : {APP_START}",
+            f"Templates   : {BASE_DIR / 'templates'}",
             "=" * 80,
         ]
     )
