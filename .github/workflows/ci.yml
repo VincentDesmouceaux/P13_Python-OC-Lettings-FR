@@ -5,39 +5,41 @@ name: CI – tests, build, deploy
 # Déclencheurs
 ###############################################################################
 on:
-  push:
-    branches:
-      - '**'               # tests sur toutes les branches
-  pull_request:
-  workflow_dispatch:
+  push:           # commit direct
+    branches: ['**']          # tests sur toutes les branches
+  pull_request:               # tests sur toutes les PR
+  workflow_dispatch:          # déclenchement manuel
 
 ###############################################################################
-# Variables globales (jamais de secrets en clair)
+# Variables globales (AUCUN secret en clair)
 ###############################################################################
 env:
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
-  PY_VER: '3.12'
+  IMAGE_NAME:  ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
+  PY_VER:      '3.12'
 
 ###############################################################################
-# 1) Lint + tests (toujours)
+# 1) Lint + tests – TOUJOURS
 ###############################################################################
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PY_VER }}
 
-      - uses: actions/cache@v4
+      - name: Cache pip
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: ${{ runner.os }}-pip-
 
-      - name: Install / lint / tests
+      - name: Install, lint, test
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
@@ -45,7 +47,7 @@ jobs:
           pytest --cov=. --cov-report=xml --cov-fail-under=80
 
 ###############################################################################
-# 2) Build & push (uniquement sur master si tests OK)
+# 2) Build & push Docker – UNIQUEMENT sur master si tests OK
 ###############################################################################
   docker:
     needs: test
@@ -53,34 +55,36 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      packages: write     # pour pouvoir pousser sur Docker Hub
 
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/setup-qemu-action@v3           # émulation ARM
+      - uses: docker/setup-buildx-action@v3         # builder multi-arch
         with:
           driver: docker-container
 
-      - uses: docker/login-action@v3
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push multi-arch
+      - name: Build & push (linux/amd64 + linux/arm64)
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
           platforms: linux/amd64,linux/arm64
+          push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to:   type=gha,mode=max
 
 ###############################################################################
-# 3) Déploiement Northflank (seulement si build OK)
+# 3) Déploiement Northflank – seulement si build OK
 ###############################################################################
   deploy:
     needs: docker
@@ -90,12 +94,14 @@ jobs:
     steps:
       - name: Trigger redeploy on Northflank
         env:
-          NF_API_TOKEN:     ${{ secrets.NORTHFLANK_TOKEN }}
-          NF_PROJECT_ID:    ${{ secrets.NORTHFLANK_PROJECT_ID }}   # <-- ajoutez ce secret
+          NF_API_TOKEN:  ${{ secrets.NORTHFLANK_TOKEN }}     # PAT
+          NF_PROJECT:    ${{ secrets.NORTHFLANK_PROJECT }}   # slug projet NF
+          NF_SERVICE:    ${{ secrets.NORTHFLANK_SERVICE }}   # slug service NF
+          IMAGE_TAG:     latest                              # ou github.sha
         run: |
           set -euo pipefail
           curl -sSf -X POST \
-            "https://api.northflank.com/v1/projects/${NF_PROJECT_ID}/services/holiday-homes/redeploy" \
+            "https://api.northflank.com/v1/projects/${NF_PROJECT}/services/${NF_SERVICE}/deployments" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d '{"reason":"GitHub Action auto-deploy","imageTag":"latest"}'
+            -d "{\"image\": {\"tag\": \"${IMAGE_TAG}\"}, \"reason\": \"GitHub Action auto-deploy\"}"
