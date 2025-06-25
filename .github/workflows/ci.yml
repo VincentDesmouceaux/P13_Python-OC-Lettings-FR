@@ -1,5 +1,5 @@
 # .github/workflows/ci.yml
-name: CI – tests, build & (optionnel) deploy
+name: CI – tests, build, deploy
 
 ###############################################################################
 # Déclencheurs
@@ -7,29 +7,33 @@ name: CI – tests, build & (optionnel) deploy
 on:
   push:
     branches:
-      - "**"               # toutes les branches
-  pull_request:            # PR depuis n’importe quelle branche
-  workflow_dispatch:       # déclenchement manuel
+      - '**'                # toutes les branches
+  pull_request:
+  workflow_dispatch:
 
 ###############################################################################
 # Variables globales (jamais de secrets en clair)
 ###############################################################################
 env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
-  PY_VER: "3.12"
+  PY_VER: 3.12
 
 ###############################################################################
-# 1) Lint + tests – TOUJOURS exécuté
+# 1) Lint + tests  (toujours exécuté)
 ###############################################################################
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.12' ]        # ← pas d’interpolation possible ici
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PY_VER }}
+          python-version: ${{ matrix.python-version }}
 
       - uses: actions/cache@v4
         with:
@@ -37,7 +41,7 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: ${{ runner.os }}-pip-
 
-      - name: Install + lint + tests
+      - name: Install / lint / tests
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
@@ -45,7 +49,7 @@ jobs:
           pytest --cov=. --cov-report=xml --cov-fail-under=80
 
 ###############################################################################
-# 2) Build & push (multi-arch) – UNIQUEMENT sur master
+# 2) Build & push multi-arch – seulement sur master
 ###############################################################################
   docker:
     needs: test
@@ -57,24 +61,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
 
-      - name: Login Docker Hub
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push image
+      - name: Build & push
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -82,14 +84,20 @@ jobs:
           cache-to: type=gha,mode=max
 
 ###############################################################################
-# 3) Déploiement (Northflank, Render, SSH…)
-#    — exécutez vos scripts seulement si l'image a été poussée avec succès.
+# 3) Déploiement Northflank – uniquement si l’image a été poussée
 ###############################################################################
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
     runs-on: ubuntu-latest
+
     steps:
-      - name: Déploiement (exemple placeholder)
+      - name: Trigger redeploy on Northflank
+        env:
+          NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
         run: |
-          echo "Ici vous appelez l'API Northflank, Render, Ansible, etc."
+          curl -sSf -X POST \
+               https://api.northflank.com/v1/projects/<PROJECT_ID>/services/holiday-homes/redeploy \
+               -H "Authorization: Bearer $NF_API_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"reason":"GitHub Action auto-deploy","imageTag":"latest"}'
