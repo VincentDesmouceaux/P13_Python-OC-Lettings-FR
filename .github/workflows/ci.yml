@@ -7,7 +7,7 @@ name: CI – tests, build, deploy
 on:
   push:
     branches:
-      - '**'                # toutes les branches
+      - '**'               # tests sur toutes les branches
   pull_request:
   workflow_dispatch:
 
@@ -16,24 +16,20 @@ on:
 ###############################################################################
 env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
-  PY_VER: 3.12
+  PY_VER: '3.12'
 
 ###############################################################################
-# 1) Lint + tests  (toujours exécuté)
+# 1) Lint + tests (toujours)
 ###############################################################################
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ '3.12' ]        # ← pas d’interpolation possible ici
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.PY_VER }}
 
       - uses: actions/cache@v4
         with:
@@ -49,7 +45,7 @@ jobs:
           pytest --cov=. --cov-report=xml --cov-fail-under=80
 
 ###############################################################################
-# 2) Build & push multi-arch – seulement sur master
+# 2) Build & push (uniquement sur master si tests OK)
 ###############################################################################
   docker:
     needs: test
@@ -71,7 +67,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push
+      - name: Build & push multi-arch
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -84,7 +80,7 @@ jobs:
           cache-to: type=gha,mode=max
 
 ###############################################################################
-# 3) Déploiement Northflank – uniquement si l’image a été poussée
+# 3) Déploiement Northflank (seulement si build OK)
 ###############################################################################
   deploy:
     needs: docker
@@ -94,10 +90,12 @@ jobs:
     steps:
       - name: Trigger redeploy on Northflank
         env:
-          NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
+          NF_API_TOKEN:     ${{ secrets.NORTHFLANK_TOKEN }}
+          NF_PROJECT_ID:    ${{ secrets.NORTHFLANK_PROJECT_ID }}   # <-- ajoutez ce secret
         run: |
+          set -euo pipefail
           curl -sSf -X POST \
-               https://api.northflank.com/v1/projects/<PROJECT_ID>/services/holiday-homes/redeploy \
-               -H "Authorization: Bearer $NF_API_TOKEN" \
-               -H "Content-Type: application/json" \
-               -d '{"reason":"GitHub Action auto-deploy","imageTag":"latest"}'
+            "https://api.northflank.com/v1/projects/${NF_PROJECT_ID}/services/holiday-homes/redeploy" \
+            -H "Authorization: Bearer ${NF_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"reason":"GitHub Action auto-deploy","imageTag":"latest"}'
