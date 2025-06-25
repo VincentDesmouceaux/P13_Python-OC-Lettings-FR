@@ -1,25 +1,16 @@
 # .github/workflows/ci.yml
 name: CI – tests, build, deploy
 
-###############################################################################
-# Déclencheurs
-###############################################################################
 on:
-  push:           # commit direct
-    branches: ['**']          # tests sur toutes les branches
-  pull_request:               # tests sur toutes les PR
-  workflow_dispatch:          # déclenchement manuel
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
 
-###############################################################################
-# Variables globales (AUCUN secret en clair)
-###############################################################################
 env:
   IMAGE_NAME:  ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
   PY_VER:      '3.12'
 
-###############################################################################
-# 1) Lint + tests – TOUJOURS
-###############################################################################
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -46,22 +37,19 @@ jobs:
           flake8 .
           pytest --cov=. --cov-report=xml --cov-fail-under=80
 
-###############################################################################
-# 2) Build & push Docker – UNIQUEMENT sur master si tests OK
-###############################################################################
   docker:
     needs: test
     if: github.ref == 'refs/heads/master' && needs.test.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write     # pour pouvoir pousser sur Docker Hub
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/setup-qemu-action@v3           # émulation ARM
-      - uses: docker/setup-buildx-action@v3         # builder multi-arch
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
 
@@ -71,7 +59,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push (linux/amd64 + linux/arm64)
+      - name: Build & push
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -83,9 +71,6 @@ jobs:
           cache-from: type=gha
           cache-to:   type=gha,mode=max
 
-###############################################################################
-# 3) Déploiement Northflank – seulement si build OK
-###############################################################################
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
@@ -95,14 +80,29 @@ jobs:
       - name: Trigger redeploy on Northflank
         env:
           NF_API_TOKEN:  ${{ secrets.NORTHFLANK_TOKEN }}
-          NF_PROJECT:    ${{ secrets.NORTHFLANK_PROJECT }}   # Doit être le slug du projet
-          NF_SERVICE:    ${{ secrets.NORTHFLANK_SERVICE }}   # Doit être le slug du service
+          # D'après votre URL : 
+          # Projet = vintedbackendtestone
+          # Service = holiday-homes
+          NF_PROJECT:    "vintedbackendtestone"   # Slug du projet
+          NF_SERVICE:    "holiday-homes"          # Slug du service
           IMAGE_TAG:     latest
+          DOCKER_REPO:   ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
         run: |
           set -euo pipefail
-          # Utiliser les endpoints 'by-slug' dans l'URL
-          curl -sSf -X POST \
-            "https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deployments" \
+          
+          # URL avec slugs
+          DEPLOY_URL="https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy"
+          
+          echo "Deploying to: ${DEPLOY_URL}"
+          
+          curl -v -X POST \
+            "$DEPLOY_URL" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "{\"image\": {\"tag\": \"${IMAGE_TAG}\"}, \"reason\": \"GitHub Action auto-deploy\"}"
+            -d "{
+              \"image\": {
+                \"repository\": \"${DOCKER_REPO}\",
+                \"tag\": \"${IMAGE_TAG}\"
+              },
+              \"reason\": \"GitHub Action auto-deploy\"
+            }"
