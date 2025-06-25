@@ -80,17 +80,13 @@ jobs:
       - name: Trigger redeploy on Northflank
         env:
           NF_API_TOKEN:  ${{ secrets.NORTHFLANK_TOKEN }}
-          # D'après votre URL : 
-          # Projet = vintedbackendtestone
-          # Service = holiday-homes
-          NF_PROJECT:    "vintedbackendtestone"   # Slug du projet
-          NF_SERVICE:    "holiday-homes"          # Slug du service
+          NF_PROJECT:    "vintedbackendtestone"
+          NF_SERVICE:    "holiday-homes"
           IMAGE_TAG:     latest
           DOCKER_REPO:   ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
         run: |
           set -euo pipefail
           
-          # URL avec slugs
           DEPLOY_URL="https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy"
           
           echo "Deploying to: ${DEPLOY_URL}"

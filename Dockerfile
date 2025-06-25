@@ -5,10 +5,12 @@ FROM python:3.12-slim-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/vincentdesmouceaux/P13_Python-OC-Lettings-FR"
 
-ARG PORT=8000                 # PORT en dur dans l’image pour EXPOSE
+# Utilisation d'une variable pour le port
+ARG PORT=8000
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    WHITENOISE_MANIFEST_STRICT=false  
+    WHITENOISE_MANIFEST_STRICT=false \
+    PORT=$PORT
 
 WORKDIR /app
 
@@ -34,4 +36,4 @@ RUN DJANGO_DEBUG=false python manage.py collectstatic --noinput
 
 # ─────────────── 5. exécution Gunicorn ──────────────────────────
 EXPOSE ${PORT}
-CMD ["gunicorn", "oc_lettings_site.wsgi:application", "-b", "0.0.0.0:8000", "--timeout", "120"]
+CMD ["sh", "-c", "gunicorn oc_lettings_site.wsgi:application -b 0.0.0.0:$PORT --timeout 120"]
