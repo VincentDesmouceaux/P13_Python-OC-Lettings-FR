@@ -91,7 +91,7 @@ LOGGING: Dict[str, Any] = {
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:
     try:
-        import sentry_sdk  # type: ignore
+        import sentry_sdk                                  # type: ignore
         from sentry_sdk.integrations.django import DjangoIntegration  # type: ignore
         from sentry_sdk.integrations.logging import LoggingIntegration  # type: ignore
 
@@ -116,7 +116,7 @@ print(
             f"Mode        : {'PROD' if 'prod' in os.getenv('DJANGO_SETTINGS_MODULE', '') else 'DEV'}",
             f"Git commit  : {GIT_SHA}",
             f"Start (UTC) : {APP_START}",
-            f"Templates   : {BASE_DIR / 'templates'}",
+            f"Templates   : {BASE_DIR/'templates'}",
             "=" * 80,
         ]
     )
