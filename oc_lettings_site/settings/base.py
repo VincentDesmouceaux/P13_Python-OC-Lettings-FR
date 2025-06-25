@@ -16,7 +16,11 @@ except ModuleNotFoundError:
 
 # ─────────────── variables globales ─────────────
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
+    if h.strip()
+]
 GIT_SHA = os.getenv("GIT_SHA", "unknown")
 APP_START = datetime.datetime.utcnow().isoformat()
 
@@ -109,15 +113,14 @@ if SENTRY_DSN:
         logging.warning("sentry-sdk non installé → Sentry désactivé")
 
 # ─────────────── bannière de démarrage ──────────
-print(
-    "\n".join(
-        [
-            "=" * 80,
-            f"Mode        : {'PROD' if 'prod' in os.getenv('DJANGO_SETTINGS_MODULE', '') else 'DEV'}",
-            f"Git commit  : {GIT_SHA}",
-            f"Start (UTC) : {APP_START}",
-            "Templates   : templates/",
-            "=" * 80,
-        ]
-    )
-)
+MODE = "PROD" if "prod" in os.getenv("DJANGO_SETTINGS_MODULE", "") else "DEV"
+TEMPL_PATH = "templates/"
+
+print("\n".join([
+    "=" * 80,
+    f"Mode        : {MODE}",
+    f"Git commit  : {GIT_SHA}",
+    f"Start (UTC) : {APP_START}",
+    f"Templates   : {TEMPL_PATH}",
+    "=" * 80,
+]))
