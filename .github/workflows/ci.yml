@@ -2,16 +2,18 @@ name: CI – tests, build, deploy
 
 on:
   push:
-    branches: ['main', 'master']     # adaptez si besoin
-  pull_request:
+    branches: ['main', 'master']   # lance tout le workflow
+  pull_request:                    # exécute uniquement le job test
   workflow_dispatch:
 
 env:
   IMAGE_NAME:  ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
   PY_VER:      '3.12'
 
+# ─────────────────────────────────────────────────────────────── jobs
 jobs:
-# ─────────────────────────────────────────────────────────────── test
+
+  # -------------------------- tests + couverture --------------------------
   test:
     runs-on: ubuntu-latest
     steps:
@@ -36,10 +38,10 @@ jobs:
           flake8 .
           pytest --cov=. --cov-report=xml --cov-fail-under=80
 
-# ─────────────────────────────────────────────────────────────── docker
+  # -------------------------- build & push docker -------------------------
   docker:
     needs: test
-    if: needs.test.result == 'success' && github.ref == 'refs/heads/main'
+    if: needs.test.result == 'success' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -59,11 +61,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push (stage “prod”)
+      - name: Build & push image (stage prod)
         uses: docker/build-push-action@v5
         with:
           context: .
-          target: prod                 # ← stage Dockerfile
+          target: prod
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
@@ -72,7 +74,7 @@ jobs:
           cache-from: type=gha
           cache-to:   type=gha,mode=max
 
-# ─────────────────────────────────────────────────────────────── deploy
+  # ----------------------------- deploy -----------------------------------
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
