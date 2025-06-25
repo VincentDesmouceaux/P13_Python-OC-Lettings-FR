@@ -1,4 +1,16 @@
 [run]
+# Fichiers ignorés pour le calcul de couverture
 omit =
-    */tests/*.py
-    */migrations/*.py
+    */migrations/*
+    */settings/*
+    */admin.py
+    */apps.py
+    */wsgi.py
+    */asgi.py
+    manage.py
+
+[report]
+# Lignes à ignorer (pragma, main, etc.)
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
