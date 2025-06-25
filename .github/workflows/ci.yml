@@ -35,7 +35,8 @@ jobs:
           flake8 .
           pytest --cov=. --cov-report=xml --cov-fail-under=80
 
-  # ─────────────── build & push Docker image ───────────────
+ 
+  # ------------------------ build & push image ----------------------
   docker:
     needs: test
     if: needs.test.result == 'success' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
@@ -57,13 +58,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push image (stage prod)
+      - name: Build & push (stage prod)
         uses: docker/build-push-action@v5
         with:
           context: .
           target: prod
           build-args: |
-            GIT_SHA=${{ github.sha }}        # injecté dans l’image
+            GIT_SHA=${{ github.sha }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
