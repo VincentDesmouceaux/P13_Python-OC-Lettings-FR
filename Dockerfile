@@ -14,9 +14,13 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 # ───────── prod ─────────
 FROM base AS prod
 ARG PORT=8000
-ENV DJANGO_SETTINGS_MODULE=oc_lettings_site.settings.prod \
+ARG GIT_SHA=unknown
+ENV \
+    DJANGO_SETTINGS_MODULE=oc_lettings_site.settings.prod \
     PORT=$PORT \
+    GIT_SHA=$GIT_SHA \
     WHITENOISE_MANIFEST_STRICT=false
+
 COPY . .
 RUN python manage.py collectstatic --noinput
 

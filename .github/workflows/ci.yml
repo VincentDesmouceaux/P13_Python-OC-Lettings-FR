@@ -2,30 +2,27 @@ name: CI – tests, build, deploy
 
 on:
   push:
-    branches: ['main', 'master']   # lance tout le workflow
-  pull_request:                    # exécute uniquement le job test
+    branches: ['main', 'master']        # déclenche CI + build + deploy
+  pull_request:                         # exécute seulement le job test
   workflow_dispatch:
 
 env:
-  IMAGE_NAME:  ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
-  PY_VER:      '3.12'
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
+  PY_VER: '3.12'
 
-# ─────────────────────────────────────────────────────────────── jobs
 jobs:
-
-  # -------------------------- tests + couverture --------------------------
+  # ────────────────────────── test ──────────────────────────
   test:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PY_VER }}
 
-      - name: Cache pip
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
@@ -38,7 +35,7 @@ jobs:
           flake8 .
           pytest --cov=. --cov-report=xml --cov-fail-under=80
 
-  # -------------------------- build & push docker -------------------------
+  # ─────────────── build & push Docker image ───────────────
   docker:
     needs: test
     if: needs.test.result == 'success' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
@@ -55,8 +52,7 @@ jobs:
         with:
           driver: docker-container
 
-      - name: Login Docker Hub
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -66,15 +62,17 @@ jobs:
         with:
           context: .
           target: prod
+          build-args: |
+            GIT_SHA=${{ github.sha }}        # injecté dans l’image
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
-          cache-to:   type=gha,mode=max
+          cache-to: type=gha,mode=max
 
-  # ----------------------------- deploy -----------------------------------
+  # ───────────────────────────── deploy ─────────────────────────────
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
@@ -87,11 +85,11 @@ jobs:
           NF_PROJECT:    "vintedbackendtestone"
           NF_SERVICE:    "holiday-homes"
           IMAGE_TAG:     latest
-          DOCKER_REPO:   ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
+          DOCKER_REPO:   ${{ env.IMAGE_NAME }}
         run: |
           set -euo pipefail
-          DEPLOY_URL="https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy"
-          curl -X POST "$DEPLOY_URL" \
+          curl -X POST \
+            "https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{
