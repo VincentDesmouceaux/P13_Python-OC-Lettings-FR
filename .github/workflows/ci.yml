@@ -1,9 +1,8 @@
-# .github/workflows/ci.yml
 name: CI – tests, build, deploy
 
 on:
   push:
-    branches: ['**']
+    branches: ['main', 'master']     # adaptez si besoin
   pull_request:
   workflow_dispatch:
 
@@ -12,9 +11,9 @@ env:
   PY_VER:      '3.12'
 
 jobs:
+# ─────────────────────────────────────────────────────────────── test
   test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -37,9 +36,10 @@ jobs:
           flake8 .
           pytest --cov=. --cov-report=xml --cov-fail-under=80
 
+# ─────────────────────────────────────────────────────────────── docker
   docker:
     needs: test
-    if: github.ref == 'refs/heads/master' && needs.test.result == 'success'
+    if: needs.test.result == 'success' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -59,10 +59,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push
+      - name: Build & push (stage “prod”)
         uses: docker/build-push-action@v5
         with:
           context: .
+          target: prod                 # ← stage Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
@@ -71,6 +72,7 @@ jobs:
           cache-from: type=gha
           cache-to:   type=gha,mode=max
 
+# ─────────────────────────────────────────────────────────────── deploy
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
@@ -86,19 +88,11 @@ jobs:
           DOCKER_REPO:   ${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site
         run: |
           set -euo pipefail
-          
           DEPLOY_URL="https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy"
-          
-          echo "Deploying to: ${DEPLOY_URL}"
-          
-          curl -v -X POST \
-            "$DEPLOY_URL" \
+          curl -X POST "$DEPLOY_URL" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{
-              \"image\": {
-                \"repository\": \"${DOCKER_REPO}\",
-                \"tag\": \"${IMAGE_TAG}\"
-              },
+              \"image\": {\"repository\": \"${DOCKER_REPO}\", \"tag\": \"${IMAGE_TAG}\"},
               \"reason\": \"GitHub Action auto-deploy\"
             }"
