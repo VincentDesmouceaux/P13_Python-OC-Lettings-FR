@@ -3,8 +3,8 @@ Paramétrage unique
 ──────────────────
 • DEV par défaut – passe en PROD quand DJANGO_DEBUG=false
 • Statics :
-    – DEV : servis depuis <projet>/static/
-    – PROD : collectés dans <projet>/staticfiles/ (WhiteNoise compressé)
+    – DEV  : servis depuis <projet>/static/
+    – PROD : collectés dans <projet>/staticfiles/ (WhiteNoise + manifest compressé)
 """
 
 from __future__ import annotations
@@ -16,32 +16,28 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-# 0 ─────────────────────────────── .env ───────────────────────────────
-BASE_DIR = Path(__file__).resolve().parent.parent
+# ─────────────────────────── 0. .env (facultatif) ─────────────────────
+BASE_DIR: Path = Path(__file__).resolve().parent.parent
 try:
     from dotenv import load_dotenv  # type: ignore
-    # override=True → les valeurs du .env PRENNENT LE PAS sur l’environnement
+    # override=True : les variables du .env *écrasent* l’environnement
     load_dotenv(BASE_DIR / ".env", override=True)
 except ModuleNotFoundError:
     pass
 
-# 1 ─────────────────────────── Contexte ───────────────────────────────
+# ─────────────────────────── 1. Contexte d’exécution ──────────────────
 RUNSERVER = "runserver" in sys.argv
 RUNNING_TESTS = "pytest" in sys.argv[0] or "test" in sys.argv
 
 
-def _str2bool(val: str) -> bool:
+def str2bool(val: str) -> bool:
     return val.lower() in {"1", "true", "yes", "y"}
 
 
-if "DJANGO_DEBUG" in os.environ:                   # valeur explicite
-    DEBUG: bool = _str2bool(os.environ["DJANGO_DEBUG"])
-else:                                              # défaut : DEV
-    DEBUG = True
+DEBUG: bool = str2bool(os.getenv("DJANGO_DEBUG", "true"))
+PROD:  bool = not DEBUG and not RUNNING_TESTS
 
-PROD: bool = not DEBUG and not RUNNING_TESTS       # prod réel
-
-# 2 ─────────────────────────── Clés & hosts ───────────────────────────
+# ─────────────────────────── 2. Clés & hosts ──────────────────────────
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
 ALLOWED_HOSTS: list[str] = [
     h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()
@@ -49,11 +45,12 @@ ALLOWED_HOSTS: list[str] = [
 if RUNSERVER and DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost", "0.0.0.0"]
 
-# 3 ───────────────────── Apps & middleware ────────────────────────────
+# ───────────────────── 3. Apps & middleware ───────────────────────────
 INSTALLED_APPS = [
     "oc_lettings_site",
     "lettings",
     "profiles",
+    # Django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -63,7 +60,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = ["django.middleware.security.SecurityMiddleware"]
-if PROD:                                           # WhiteNoise seulement en prod
+# WhiteNoise seulement en PROD
+if PROD:
     MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 MIDDLEWARE += [
@@ -78,7 +76,7 @@ MIDDLEWARE += [
 ROOT_URLCONF = "oc_lettings_site.urls"
 WSGI_APPLICATION = "oc_lettings_site.wsgi.application"
 
-# 4 ─────────────────────────── Templates ──────────────────────────────
+# ─────────────────────────── 4. Templates ─────────────────────────────
 TEMPLATES: list[Dict[str, Any]] = [{
     "BACKEND": "django.template.backends.django.DjangoTemplates",
     "DIRS": [BASE_DIR / "templates"],
@@ -94,7 +92,7 @@ TEMPLATES: list[Dict[str, Any]] = [{
     },
 }]
 
-# 5 ─────────────────── Base de données & i18n ─────────────────────────
+# ───────────────────── 5. BDD & i18n ──────────────────────────────────
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -105,15 +103,15 @@ LANGUAGE_CODE, TIME_ZONE = "en-us", "UTC"
 USE_I18N = USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# 6 ────────────────────── Fichiers statiques ──────────────────────────
+# ────────────────────── 6. Fichiers statiques ─────────────────────────
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]     # sources
-STATIC_ROOT = BASE_DIR / "staticfiles"       # artefacts collectés
+STATICFILES_DIRS = [BASE_DIR / "static"]      # sources
+STATIC_ROOT = BASE_DIR / "staticfiles"        # collectstatic
 
 if PROD:
     STORAGES = {
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",  # ← plus de manifest
         }
     }
 else:
@@ -123,7 +121,7 @@ else:
         }
     }
 
-# 7 ─────────────────────────── Logging ────────────────────────────────
+# ─────────────────────────── 7. Logging ───────────────────────────────
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING: Dict[str, Any] = {
     "version": 1,
@@ -132,7 +130,7 @@ LOGGING: Dict[str, Any] = {
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
 }
 
-# 8 ─────────────────────────── Sentry ─────────────────────────────────
+# ─────────────────────────── 8. Sentry (optionnel) ───────────────────
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:
     try:
@@ -153,16 +151,12 @@ if SENTRY_DSN:
     except ModuleNotFoundError:
         logging.warning("⚠️  sentry-sdk absent → Sentry désactivé")
 
-# 9 ─────────────────── Bannière de démarrage ──────────────────────────
-print(
-    "\n".join(
-        [
-            "=" * 80,
-            f"Mode        : {'PROD' if PROD else 'DEV'}",
-            f"DEBUG       : {DEBUG}",
-            f"Templates   : {BASE_DIR / 'templates'}",
-            f"UTC start   : {datetime.datetime.utcnow().isoformat()}",
-            "=" * 80,
-        ]
-    )
-)
+# ─────────────────── 9. Bannière ──────────────────────────────────────
+print("\n".join([
+    "=" * 80,
+    f"Mode        : {'PROD' if PROD else 'DEV'}",
+    f"DEBUG       : {DEBUG}",
+    f"Templates   : {BASE_DIR / 'templates'}",
+    f"UTC start   : {datetime.datetime.utcnow().isoformat()}",
+    "=" * 80,
+]))

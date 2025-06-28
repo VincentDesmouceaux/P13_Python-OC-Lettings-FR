@@ -1,28 +1,35 @@
-# ───────── base ─────────
-FROM python:3.12-slim-bookworm AS base
-WORKDIR /app
-ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+# syntax=docker/dockerfile:1
+# ──────────────────────────────────────────────────────────────
+# Image unique ~150 Mo compressée – Python 3.12 + Django 4.2
+# ──────────────────────────────────────────────────────────────
+FROM python:3.12-slim
+
+# ==== 1. Variables d’environnement ===========================
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DJANGO_DEBUG=false \            
+    WHITENOISE_MANIFEST_STRICT=false \
+    PORT=8000
+
+WORKDIR /app                       # racine du code dans l’image
+
+# ==== 2. Dépendances système minimales =======================
+RUN apt-get update -qq \
+    && apt-get -y --no-install-recommends upgrade \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# ==== 3. Dépendances Python ==================================
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# ───────── dev ──────────
-FROM base AS dev
-ENV DJANGO_SETTINGS_MODULE=oc_lettings_site.settings.dev
+# ==== 4. Code source  ========================================
 COPY . .
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
-# ───────── prod ─────────
-FROM base AS prod
-ARG PORT=8000
-ARG GIT_SHA=unknown
-ENV \
-    DJANGO_SETTINGS_MODULE=oc_lettings_site.settings.prod \
-    PORT=$PORT \
-    GIT_SHA=$GIT_SHA \
-    WHITENOISE_MANIFEST_STRICT=false
-
-COPY . .
+# ==== 5. Collecte statique (WhiteNoise) ======================
 RUN python manage.py collectstatic --noinput
 
+# ==== 6. Exposition & démarrage ==============================
 EXPOSE ${PORT}
-CMD ["sh", "-c", "gunicorn oc_lettings_site.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120 --log-level info"]
+CMD ["gunicorn", "oc_lettings_site.wsgi:application", "-b", "0.0.0.0:8000", "--timeout", "120"]

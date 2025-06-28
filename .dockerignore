@@ -4,7 +4,7 @@ __pycache__/
 
 # ---- Environnement virtuel ------------------------------------
 venv/
-.env               # jamais dans l’image !
+.env              
 
 # ---- Git / CI -------------------------------------------------
 .git/
@@ -18,3 +18,4 @@ htmlcov/
 .DS_Store
 .idea/
 .vscode/
+staticfiles/
