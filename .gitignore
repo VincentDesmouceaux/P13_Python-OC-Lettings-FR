@@ -4,4 +4,4 @@ venv
 .env
 .env.dev
 .env.prod
-
+staticfiles/
