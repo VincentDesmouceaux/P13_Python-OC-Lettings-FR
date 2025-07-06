@@ -39,11 +39,19 @@ PROD:  bool = not DEBUG and not RUNNING_TESTS
 
 # ─────────────────────────── 2. Clés & hosts ──────────────────────────
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
-ALLOWED_HOSTS: list[str] = [
+ALLOWED_HOSTS = [
     h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()
 ]
+# autorise toujours localhost pour les prévisualisations locales Docker
 if RUNSERVER and DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost", "0.0.0.0"]
+
+# → pour Northflank : définir DJANGO_ALLOWED_HOSTS dans l’interface à « *.code.run »
+if PROD and not ALLOWED_HOSTS:
+    raise ValueError(
+        "ALLOWED_HOSTS must be set in production! "
+        "Set DJANGO_ALLOWED_HOSTS in your environment variables."
+    )
 
 # ───────────────────── 3. Apps & middleware ───────────────────────────
 INSTALLED_APPS = [
