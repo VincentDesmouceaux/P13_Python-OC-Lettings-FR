@@ -6,25 +6,25 @@ name: CI – lint, tests, build & deploy
 ###############################################################################
 on:
   push:
-    branches: ["**"]        # toutes les branches
+    branches: ["**"]          # toutes les branches
   pull_request:
   workflow_dispatch:
 
 ###############################################################################
-# Variables globales (non sensibles)
+# Variables globales
 ###############################################################################
 env:
-  PY_VER: "3.12"                              # Python utilisé pour les tests
+  PY_VER: "3.12"
   DOCKER_REPO: vincentdesmouceaux/oc-lettings-site
-  NF_PROJECT: vintedbackendtestone            # slug Northflank
-  NF_SERVICE: holiday-homes                   # slug Northflank
-  IMAGE_TAG: latest                           # tag déployé (change si besoin)
+  NF_PROJECT: vintedbackendtestone      # slug Northflank
+  NF_SERVICE: holiday-homes             # slug Northflank
+  IMAGE_TAG: latest                     # tag déployé
 
 ###############################################################################
 jobs:
 ###############################################################################
 
-# ────────────────────────────── 1. TESTS ────────────────────────────────────
+# ───────────────────────────── 1. TESTS ────────────────────────────────────
   test:
     runs-on: ubuntu-latest
 
@@ -51,7 +51,7 @@ jobs:
                  --cov-report=term-missing \
                  --cov-fail-under=80
 
-# ───────────────────── 2. BUILD & PUSH IMAGE (main/master) ─────────────────
+# ────────────────────── 2. BUILD & PUSH (master/main) ──────────────────────
   docker:
     needs: test
     if: >
@@ -60,23 +60,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write                  # push Docker Hub
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
 
-      # 2.1 QEMU + Buildx pour multi-arch
+      # multi-arch : QEMU + Buildx
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
-      # 2.2 Login Docker Hub
+      # login Docker Hub
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 2.3 Build & push
-      - name: Build & push (linux/amd64 + linux/arm64)
+      - name: Build & push (amd64 + arm64)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -85,11 +84,10 @@ jobs:
           tags: |
             ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
             ${{ env.DOCKER_REPO }}:${{ github.sha }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
+          build-args: GIT_SHA=${{ github.sha }}
           cache-from: type=gha
-          cache-to:   type=gha,mode=max
-          provenance: false        # manifest plus léger
+          cache-to: type=gha,mode=max
+          provenance: false               # manifest plus léger
 
 # ───────────────────────── 3. DEPLOY NORTHFLANK ────────────────────────────
   deploy:
@@ -105,12 +103,11 @@ jobs:
           IMAGE_TAG:    ${{ env.IMAGE_TAG }}
           NF_PROJECT:   ${{ env.NF_PROJECT }}
           NF_SERVICE:   ${{ env.NF_SERVICE }}
-          # facultatif : si tu veux passer Sentry à Northflank via l’API
-          SENTRY_DSN:   ${{ secrets.SENTRY_DSN || '' }}
         run: |
+          set -e
           echo "💡 Déploiement Northflank : ${NF_PROJECT}/${NF_SERVICE} → ${DOCKER_REPO}:${IMAGE_TAG}"
           curl -sS -f -X POST \
-            "https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy" \
+            "https://api.northflank.com/v1/projects/${NF_PROJECT}/services/${NF_SERVICE}/deploy" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{
