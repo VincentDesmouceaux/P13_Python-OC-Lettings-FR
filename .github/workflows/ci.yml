@@ -1,5 +1,4 @@
 # .github/workflows/ci.yml
-# CI – lint, tests, build (multi-arch) & deploy Northflank
 name: CI – lint, tests, build & deploy
 
 ###############################################################################
@@ -7,7 +6,7 @@ name: CI – lint, tests, build & deploy
 ###############################################################################
 on:
   push:
-    branches: ["**"]          # toutes les branches
+    branches: ["**"]        # toutes les branches
   pull_request:
   workflow_dispatch:
 
@@ -15,10 +14,11 @@ on:
 # Variables globales (non sensibles)
 ###############################################################################
 env:
-  PY_VER: "3.12"                    # version de Python pour les tests
-  REGISTRY: docker.io               # registre utilisé
-  NF_PROJECT: vintedbackendtestone  # Northflank project slug
-  NF_SERVICE: holiday-homes         # Northflank service slug
+  PY_VER: "3.12"                              # Python utilisé pour les tests
+  DOCKER_REPO: vincentdesmouceaux/oc-lettings-site
+  NF_PROJECT: vintedbackendtestone            # slug Northflank
+  NF_SERVICE: holiday-homes                   # slug Northflank
+  IMAGE_TAG: latest                           # tag déployé (change si besoin)
 
 ###############################################################################
 jobs:
@@ -39,8 +39,7 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          restore-keys: ${{ runner.os }}-pip-
 
       - name: Install deps, lint & tests
         run: |
@@ -52,7 +51,7 @@ jobs:
                  --cov-report=term-missing \
                  --cov-fail-under=80
 
-# ───────────────────── 2. BUILD & PUSH IMAGE (master/main) ─────────────────
+# ───────────────────── 2. BUILD & PUSH IMAGE (main/master) ─────────────────
   docker:
     needs: test
     if: >
@@ -61,16 +60,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write            # push vers Docker Hub
-
-    # on expose le nom d’image pour les jobs suivants
-    outputs:
-      image_full: ${{ steps.vars.outputs.image_full }}
+      packages: write                  # push Docker Hub
 
     steps:
       - uses: actions/checkout@v4
 
-      # 2.1 QEMU + Buildx multi-arch
+      # 2.1 QEMU + Buildx pour multi-arch
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
@@ -80,12 +75,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 2.3 Compose full image name (pas masqué dans outputs)
-      - name: Compose full image name
-        id: vars
-        run: echo "image_full=${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site" >> "$GITHUB_OUTPUT"
-
-      # 2.4 Build multi-arch & push
+      # 2.3 Build & push
       - name: Build & push (linux/amd64 + linux/arm64)
         uses: docker/build-push-action@v5
         with:
@@ -93,13 +83,13 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ steps.vars.outputs.image_full }}:latest
-            ${{ steps.vars.outputs.image_full }}:${{ github.sha }}
+            ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
+            ${{ env.DOCKER_REPO }}:${{ github.sha }}
           build-args: |
             GIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to:   type=gha,mode=max
-          provenance: false          # manifest plus léger
+          provenance: false        # manifest plus léger
 
 # ───────────────────────── 3. DEPLOY NORTHFLANK ────────────────────────────
   deploy:
@@ -111,12 +101,15 @@ jobs:
       - name: Trigger redeploy on Northflank
         env:
           NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
-          DOCKER_REPO:  ${{ needs.docker.outputs.image_full }}
-          IMAGE_TAG:    latest
+          DOCKER_REPO:  ${{ env.DOCKER_REPO }}
+          IMAGE_TAG:    ${{ env.IMAGE_TAG }}
           NF_PROJECT:   ${{ env.NF_PROJECT }}
           NF_SERVICE:   ${{ env.NF_SERVICE }}
+          # facultatif : si tu veux passer Sentry à Northflank via l’API
+          SENTRY_DSN:   ${{ secrets.SENTRY_DSN || '' }}
         run: |
-          curl -sSL -X POST \
+          echo "💡 Déploiement Northflank : ${NF_PROJECT}/${NF_SERVICE} → ${DOCKER_REPO}:${IMAGE_TAG}"
+          curl -sS -f -X POST \
             "https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
@@ -124,4 +117,3 @@ jobs:
               "image": { "repository": "'"${DOCKER_REPO}"'", "tag": "'"${IMAGE_TAG}"'" },
               "reason": "GitHub Action auto-deploy"
             }'
-
