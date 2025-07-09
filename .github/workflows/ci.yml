@@ -104,13 +104,28 @@ jobs:
           NF_PROJECT:   ${{ env.NF_PROJECT }}
           NF_SERVICE:   ${{ env.NF_SERVICE }}
         run: |
-          set -e
+          set -euo pipefail
           echo "💡 Déploiement Northflank : ${NF_PROJECT}/${NF_SERVICE} → ${DOCKER_REPO}:${IMAGE_TAG}"
-          curl -sS -f -X POST \
-            "https://api.northflank.com/v1/projects/${NF_PROJECT}/services/${NF_SERVICE}/deploy" \
-            -H "Authorization: Bearer ${NF_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "image": { "repository": "'"${DOCKER_REPO}"'", "tag": "'"${IMAGE_TAG}"'" },
-              "reason": "GitHub Action auto-deploy"
-            }'
+
+          # chemin « slug » ✅
+          endpoint="https://api.northflank.com/v1/projects/bySlug/${NF_PROJECT}/services/bySlug/${NF_SERVICE}/deploy"
+
+          # appel verbeux → on garde la sortie pour debug
+          resp=$(curl -sS -X POST "${endpoint}" \
+                    -H "Authorization: Bearer ${NF_API_TOKEN}" \
+                    -H "Content-Type: application/json" \
+                    -d '{"image":{"repository":"'"${DOCKER_REPO}"'","tag":"'"${IMAGE_TAG}"'"},"reason":"GitHub Action auto-deploy"}' \
+                    -w '\nHTTP_CODE:%{http_code}')
+
+          http_code=$(echo "$resp" | sed -n 's/^HTTP_CODE://p')
+          body=$(echo "$resp" | sed '/^HTTP_CODE:/d')
+
+          echo "↪︎ Northflank HTTP $http_code"
+          echo "$body"
+
+          # échoue le job si KO
+          if [[ "$http_code" != "200" && "$http_code" != "202" ]]; then
+            echo "❌ Northflank deploy failed" >&2
+            exit 1
+          fi
+
