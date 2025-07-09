@@ -1,4 +1,4 @@
-# .github/workflows/ci.yml
+# CI – lint, tests, build & deploy
 name: CI – lint, tests, build & deploy
 
 ###############################################################################
@@ -6,8 +6,7 @@ name: CI – lint, tests, build & deploy
 ###############################################################################
 on:
   push:
-    branches:
-      - '**'
+    branches: ['**']          # toutes les branches
   pull_request:
   workflow_dispatch:
 
@@ -19,17 +18,16 @@ env:
 
   # Image Docker
   DOCKER_REPO: vincentdesmouceaux/oc-lettings-site
-  IMAGE_TAG:  latest
+  IMAGE_TAG:  latest          # => sera aussi tagué avec le SHA
 
-  # Northflank
+  # Northflank (⚠ slugs EXACTS)
   NF_PROJECT: vintedbackendtestone
   NF_SERVICE: holiday-homes
 
-###############################################################################
 jobs:
 ###############################################################################
 
-# ─────────────────────────── 1. TESTS ───────────────────────────
+# ────────────────────────────── 1 · TESTS ──────────────────────────────
   test:
     runs-on: ubuntu-latest
 
@@ -57,7 +55,7 @@ jobs:
                  --cov-report=term-missing \
                  --cov-fail-under=80
 
-# ─────────────────── 2. BUILD & PUSH (master/main) ───────────────────
+# ─────────────────── 2 · BUILD & PUSH (master/main) ───────────────────
   docker:
     needs: test
     if: >
@@ -66,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      packages: write        # push Docker Hub
 
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +79,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push (amd64 + arm64)
+      - name: Build & push image (amd64 + arm64)
         uses: docker/build-push-action@v5
         id: build
         with:
@@ -95,20 +93,20 @@ jobs:
             GIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to:   type=gha,mode=max
-          provenance: false
+          provenance: false   # manifest plus léger
 
-      # ---------- Smoke test local (visible uniquement hors-CI) ----------
-      - name: Local smoke test
-        if: ${{ env.CI == '' }}        # jamais exécuté sur GitHub Actions
+      # ---------- Smoke-test local (ignoré sur GitHub Actions) ----------
+      - name: Local smoke-test
+        if: ${{ env.CI == '' }}
         run: |
           docker run -d --name oc_test -p 8000:8000 \
                      -e DJANGO_ALLOWED_HOSTS=127.0.0.1 \
                      ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
           sleep 15
-          docker logs oc_test --tail=20
+          docker logs oc_test --tail 20
           docker rm -f oc_test
 
-# ─────────────────────── 3. DEPLOY NORTHFLANK ───────────────────────
+# ─────────────────────── 3 · DEPLOY NORTHFLANK ───────────────────────
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
@@ -122,13 +120,44 @@ jobs:
           IMAGE_TAG:    ${{ env.IMAGE_TAG }}
           NF_PROJECT:   ${{ env.NF_PROJECT }}
           NF_SERVICE:   ${{ env.NF_SERVICE }}
+
+          # (optionnel) pour log Sentry côté CI
+          SENTRY_DSN:   ${{ secrets.SENTRY_DSN }}
         run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
           echo "💡 Déploiement Northflank : ${NF_PROJECT}/${NF_SERVICE} → ${DOCKER_REPO}:${IMAGE_TAG}"
-          curl -sS -f -X POST \
-            "https://api.northflank.com/v1/projects/bySlug/${NF_PROJECT}/services/bySlug/${NF_SERVICE}/deploy" \
-            -H "Authorization: Bearer ${NF_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d '{
-                  "image":  { "repository": "'"${DOCKER_REPO}"'", "tag": "'"${IMAGE_TAG}"'" },
-                  "reason": "GitHub Action auto-deploy"
-                }'
+
+          endpoint="https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy"
+
+          # ——— appel de l’API Northflank (verbeux) ———
+          http_code=$(curl -sS -w '%{http_code}' -o /tmp/nf_resp.json -X POST \
+              "${endpoint}" \
+              -H "Authorization: Bearer ${NF_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d '{"image":{"repository":"'"${DOCKER_REPO}"'","tag":"'"${IMAGE_TAG}"'"},"reason":"GitHub Action auto-deploy"}' )
+
+          echo "↪︎ Northflank HTTP ${http_code}"
+          cat /tmp/nf_resp.json || true
+          echo
+
+          # ——— échec ? → on loggue dans Sentry + on échoue le job ———
+          if [[ "${http_code}" != "200" && "${http_code}" != "202" ]]; then
+            if [[ -n "${SENTRY_DSN:-}" ]]; then
+              python - <<'PY'
+                                import os, sentry_sdk, json, textwrap, pathlib, sys
+                                dsn = os.getenv("SENTRY_DSN")
+                                if dsn:
+                                    sentry_sdk.init(dsn=dsn, traces_sample_rate=0.0, environment="ci")
+                                    body = pathlib.Path("/tmp/nf_resp.json").read_text()
+                                    sentry_sdk.capture_message(textwrap.dedent(f"""
+                                        Northflank deploy failed
+                                        endpoint : {os.getenv('endpoint')}
+                                        httpcode : {os.getenv('http_code')}
+                                        response : {body[:500]}
+                                    """).strip())
+                                PY
+                                            fi
+                                            echo "❌ Northflank deploy failed" >&2
+                                            exit 1
+                                          fi
