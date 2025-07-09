@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger redeploy on Northflank
+      - name: Update Northflank service deployment
         env:
           NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
           DOCKER_REPO:  ${{ env.DOCKER_REPO }}
@@ -105,12 +105,9 @@ jobs:
           NF_SERVICE:   ${{ env.NF_SERVICE }}
         run: |
           set -e
-          echo "💡 Déploiement Northflank : ${NF_PROJECT}/${NF_SERVICE} → ${DOCKER_REPO}:${IMAGE_TAG}"
+          echo "🚀 Mise à jour image ${DOCKER_REPO}:${IMAGE_TAG} → ${NF_PROJECT}/${NF_SERVICE}"
           curl -sS -f -X POST \
-            "https://api.northflank.com/v1/projects/${NF_PROJECT}/services/${NF_SERVICE}/deploy" \
+            "https://api.northflank.com/v1/projects/${NF_PROJECT}/services/${NF_SERVICE}/deployment" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d '{
-              "image": { "repository": "'"${DOCKER_REPO}"'", "tag": "'"${IMAGE_TAG}"'" },
-              "reason": "GitHub Action auto-deploy"
-            }'
+            -d '{ "external": { "imagePath": "'"${DOCKER_REPO}:${IMAGE_TAG}"'" } }'
