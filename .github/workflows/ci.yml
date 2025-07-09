@@ -15,10 +15,10 @@ on:
 ###############################################################################
 env:
   PY_VER: "3.12"
-  DOCKER_REPO: vincentdesmouceaux/oc-lettings-site
-  NF_PROJECT: vintedbackendtestone      # slug Northflank
-  NF_SERVICE: holiday-homes             # slug Northflank
-  IMAGE_TAG: latest                     # tag déployé
+  DOCKER_REPO: vincentdesmouceaux/oc-lettings-site           # chemin sur Docker Hub (sans docker.io/)
+  NF_PROJECT: vintedbackendtestone                            # slug Northflank (Settings ▸ General)
+  NF_SERVICE: holiday-homes                                   # slug Northflank (Settings ▸ General)
+  IMAGE_TAG: latest                                           # tag déployé
 
 ###############################################################################
 jobs:
@@ -96,18 +96,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Update Northflank service deployment
+      # ─── Vérifier les variables (log) ───
+      - name: Debug – variables d'environnement
+        run: |
+          echo "NF_PROJECT=$NF_PROJECT"
+          echo "NF_SERVICE=$NF_SERVICE"
+          echo "IMAGE_PATH=docker.io/$DOCKER_REPO:$IMAGE_TAG"
+
+      # ─── Test API Northflank (verbeux, ne fait pas échouer le job) ───
+      - name: Debug – appel API Northflank
         env:
           NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
-          DOCKER_REPO:  ${{ env.DOCKER_REPO }}
-          IMAGE_TAG:    ${{ env.IMAGE_TAG }}
-          NF_PROJECT:   ${{ env.NF_PROJECT }}
-          NF_SERVICE:   ${{ env.NF_SERVICE }}
+        continue-on-error: true
         run: |
-          set -e
-          echo "🚀 Mise à jour image ${DOCKER_REPO}:${IMAGE_TAG} → ${NF_PROJECT}/${NF_SERVICE}"
-          curl -sS -f -X POST \
-            "https://api.northflank.com/v1/projects/${NF_PROJECT}/services/${NF_SERVICE}/deployment" \
+          set -euxo pipefail
+          curl -v -w '\nHTTP_CODE:%{http_code}\n' \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d '{ "external": { "imagePath": "'"${DOCKER_REPO}:${IMAGE_TAG}"'" } }'
+            -d '{ "external": { "imagePath": "docker.io/'"${DOCKER_REPO}:${IMAGE_TAG}"'" } }' \
+            https://api.northflank.com/v1/projects/${NF_PROJECT}/services/${NF_SERVICE}/deployment || true
+
+      # ─── Déploiement via l'Action officielle Northflank ───
+      - name: Deploy image to Northflank
+        uses: northflank/deploy-to-northflank@v1  # v1.0.0 (dernier tag)
+        with:
+          northflank-api-key: ${{ secrets.NORTHFLANK_TOKEN }}
+          project-id:         ${{ env.NF_PROJECT }}
+          service-id:         ${{ env.NF_SERVICE }}
+          image-path:         docker.io/${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
+          # credentials-id:   DockerHubCreds   # décommente si image privée
