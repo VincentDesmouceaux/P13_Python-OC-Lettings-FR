@@ -3,6 +3,9 @@
 # ─────────────────────────────────────────────────────────────
 FROM python:3.12-slim-bullseye
 
+# Ensure all system packages are up-to-date to reduce vulnerabilities
+RUN apt-get update -qq && apt-get -y --no-install-recommends upgrade && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 LABEL org.opencontainers.image.source="https://github.com/VincentDesmouceaux/P13_Python-OC-Lettings-FR"
 
 # ─── Variables d’environnement par défaut (écrasables à l’exécution) ───

@@ -1,36 +1,25 @@
 # .github/workflows/ci.yml
 name: CI – lint, tests, build & deploy
 
-###############################################################################
-# Déclencheurs
-###############################################################################
 on:
-  push:
-    branches: ['**']   # toutes les branches
-  pull_request:
+  push:            { branches: ['**'] }
+  pull_request:    {}
   workflow_dispatch:
 
-###############################################################################
-# Variables globales
-###############################################################################
+##############################################################################
+# Variables globales « publiques » (tout le reste passe par les secrets)
+##############################################################################
 env:
-  PY_VER: '3.12'
+  PY_VER: ${{ secrets.PY_VER }}
 
-  # Docker Hub
-  DOCKER_REPO: vincentdesmouceaux/oc-lettings-site
-  IMAGE_TAG:  latest          # + tag SHA auto-généré
-
-  # Northflank (slugs EXACTS)
-  NF_PROJECT: vintedbackendtestone
-  NF_SERVICE: holiday-homes
-
-###############################################################################
 jobs:
-###############################################################################
-
-# ───────────────────────── 1 · TESTS ─────────────────────────
+##############################################################################
+# 1 · TESTS
+##############################################################################
   test:
     runs-on: ubuntu-latest
+    env:
+      PY_VER: ${{ secrets.PY_VER }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +32,7 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
 
-      - name: Install, lint & test
+      - name: Install deps, lint & test
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
@@ -53,7 +42,9 @@ jobs:
                  --cov-report=term-missing \
                  --cov-fail-under=80
 
-# ─────────────────── 2 · BUILD & PUSH (master/main) ───────────────────
+##############################################################################
+# 2 · BUILD & PUSH (master/main uniquement)
+##############################################################################
   docker:
     needs: test
     if: >
@@ -63,7 +54,9 @@ jobs:
     permissions:
       contents: read
       packages: write
-
+    env:
+      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
+      IMAGE_TAG:  ${{ secrets.IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4
 
@@ -84,28 +77,29 @@ jobs:
           tags: |
             ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
             ${{ env.DOCKER_REPO }}:${{ github.sha }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
+          build-args: GIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to:   type=gha,mode=max
-          provenance: false
+          provenance: false      # manifest + léger
 
-# ───────────────────── 3 · DÉPLOIEMENT NORTHFLANK ─────────────────────
+##############################################################################
+# 3 · DEPLOY NORTHFLANK
+##############################################################################
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
     runs-on: ubuntu-latest
+    env:
+      NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
+      NF_PROJECT:   ${{ secrets.NF_PROJECT }}
+      NF_SERVICE:   ${{ secrets.NF_SERVICE }}
     steps:
-      - name: Redeploy service on Northflank
-        env:
-          NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
-          NF_PROJECT:   ${{ env.NF_PROJECT }}
-          NF_SERVICE:   ${{ env.NF_SERVICE }}
+      - name: Trigger deployment
         run: |
           set -euo pipefail
           echo "💡 Redeploy ${NF_PROJECT}/${NF_SERVICE}"
           curl -sSf -X POST \
-            "https://api.northflank.com/v1/projects/bySlug/${NF_PROJECT}/services/bySlug/${NF_SERVICE}/deployment" \
+            "https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{ "reason": "GitHub Action auto-deploy" }'
