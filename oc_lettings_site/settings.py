@@ -9,7 +9,7 @@ Django settings – sécurisées pour déploiement Northflank / Code.run
 """
 
 from __future__ import annotations
-import secrets
+
 
 import datetime
 import logging
