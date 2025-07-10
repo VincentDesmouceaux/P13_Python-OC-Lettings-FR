@@ -1,22 +1,20 @@
-
 """
-Django settings – sécurisées pour déploiement Northflank / Code.run
--------------------------------------------------------------------
-• Les valeurs sensibles (SECRET_KEY, hôtes, DSN…) sont **uniquement** lues depuis
-  les variables d’environnement.
-• Les domaines autorisés et les origines CSRF sont entières‑ment configurables
-  sans modifier ce fichier.
+Paramétrage unique
+──────────────────
+• DEV par défaut – passe en PROD quand DJANGO_DEBUG=false
+• Statics :
+    – DEV  : servis depuis <projet>/static/
+    – PROD : collectés dans <projet>/staticfiles/ (WhiteNoise + manifest compressé)
 """
 
 from __future__ import annotations
-
 
 import datetime
 import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 # ─────────────────────────── 0. .env (facultatif) ─────────────────────
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
@@ -32,59 +30,28 @@ RUNSERVER = "runserver" in sys.argv
 RUNNING_TESTS = "pytest" in sys.argv[0] or "test" in sys.argv
 
 
-def str2bool(val: str | None, *, default: bool = False) -> bool:
-    if val is None:
-        return default
+def str2bool(val: str) -> bool:
     return val.lower() in {"1", "true", "yes", "y"}
 
 
-def csv_env(var: str) -> List[str]:
-    """Renvoie une liste nettoyée depuis une variable d’env séparée par des virgules."""
-    return [v.strip() for v in os.getenv(var, "").split(",") if v.strip()]
-
-
-DEBUG: bool = str2bool(os.getenv("DJANGO_DEBUG"), default=True)
-PROD: bool = not DEBUG and not RUNNING_TESTS
+DEBUG: bool = str2bool(os.getenv("DJANGO_DEBUG", "true"))
+PROD:  bool = not DEBUG and not RUNNING_TESTS
 
 # ─────────────────────────── 2. Clés & hosts ──────────────────────────
-
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
-if not SECRET_KEY:
-    if RUNNING_TESTS:
-        SECRET_KEY = "test-secret-key"
-    elif DEBUG:
-        SECRET_KEY = "dev-secret-key"
-    else:
-        raise RuntimeError("DJANGO_SECRET_KEY must be set in production!")
-
-ALLOWED_HOSTS: List[str] = csv_env("DJANGO_ALLOWED_HOSTS")
-
-# Autorise toujours les prévisualisations locales `manage.py runserver`
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
+ALLOWED_HOSTS = [
+    h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()
+]
+# autorise toujours localhost pour les prévisualisations locales Docker
 if RUNSERVER and DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost", "0.0.0.0"]
 
+# → pour Northflank : définir DJANGO_ALLOWED_HOSTS dans l’interface à « *.code.run »
 if PROD and not ALLOWED_HOSTS:
-    raise RuntimeError("DJANGO_ALLOWED_HOSTS must be set in production!")
-
-# CSRF : domains sûrs (schéma requis)
-CSRF_TRUSTED_ORIGINS: List[str] = csv_env("DJANGO_CSRF_TRUSTED_ORIGINS")
-if not CSRF_TRUSTED_ORIGINS and ALLOWED_HOSTS:
-    # Derive automatiquement : https://<host>  (ignore localhost & cie)
-    CSRF_TRUSTED_ORIGINS = [
-        f"https://{h.lstrip('*.')}" for h in ALLOWED_HOSTS
-        if h not in {"127.0.0.1", "localhost", "0.0.0.0"}
-    ]
-
-if PROD and not CSRF_TRUSTED_ORIGINS:
-    raise RuntimeError("DJANGO_CSRF_TRUSTED_ORIGINS must be set in production!")
-
-# Derrière un proxy SSL (Northflank, Railway, Render…)
-if str2bool(os.getenv("DJANGO_BEHIND_PROXY"), default=True):
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-SECURE_SSL_REDIRECT = PROD
-SESSION_COOKIE_SECURE = PROD
-CSRF_COOKIE_SECURE = PROD
+    raise ValueError(
+        "ALLOWED_HOSTS must be set in production! "
+        "Set DJANGO_ALLOWED_HOSTS in your environment variables."
+    )
 
 # ───────────────────── 3. Apps & middleware ───────────────────────────
 INSTALLED_APPS = [
@@ -100,11 +67,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 ]
 
-MIDDLEWARE: List[str] = ["django.middleware.security.SecurityMiddleware"]
-
-# WhiteNoise seulement en PROD pour le manifest compressé
+MIDDLEWARE = ["django.middleware.security.SecurityMiddleware"]
+# WhiteNoise seulement en PROD
 if PROD:
-    MIDDLEWARE.append("whitenoise.middleware.WhiteNoiseMiddleware")
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 MIDDLEWARE += [
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -119,49 +85,41 @@ ROOT_URLCONF = "oc_lettings_site.urls"
 WSGI_APPLICATION = "oc_lettings_site.wsgi.application"
 
 # ─────────────────────────── 4. Templates ─────────────────────────────
-TEMPLATES: List[Dict[str, Any]] = [
-    {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-                "oc_lettings_site.context_processors.sentry_dsn",
-            ],
-        },
-    }
-]
+TEMPLATES: list[Dict[str, Any]] = [{
+    "BACKEND": "django.template.backends.django.DjangoTemplates",
+    "DIRS": [BASE_DIR / "templates"],
+    "APP_DIRS": True,
+    "OPTIONS": {
+        "context_processors": [
+            "django.template.context_processors.debug",
+            "django.template.context_processors.request",
+            "django.contrib.auth.context_processors.auth",
+            "django.contrib.messages.context_processors.messages",
+            "oc_lettings_site.context_processors.sentry_dsn",
+        ],
+    },
+}]
 
 # ───────────────────── 5. BDD & i18n ──────────────────────────────────
 DATABASES = {
     "default": {
-        "ENGINE": os.getenv("DJANGO_DB_ENGINE", "django.db.backends.sqlite3"),
-        "NAME": os.getenv("DJANGO_DB_NAME", BASE_DIR / "oc-lettings-site.sqlite3"),
-        "USER": os.getenv("DJANGO_DB_USER", ""),
-        "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", ""),
-        "HOST": os.getenv("DJANGO_DB_HOST", ""),
-        "PORT": os.getenv("DJANGO_DB_PORT", ""),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "oc-lettings-site.sqlite3",
     }
 }
-
-LANGUAGE_CODE = os.getenv("DJANGO_LANGUAGE_CODE", "en-us")
-TIME_ZONE = os.getenv("DJANGO_TIME_ZONE", "UTC")
+LANGUAGE_CODE, TIME_ZONE = "en-us", "UTC"
 USE_I18N = USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ────────────────────── 6. Fichiers statiques ─────────────────────────
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]  # sources en DEV
-STATIC_ROOT = BASE_DIR / "staticfiles"     # collectstatic en PROD
+STATICFILES_DIRS = [BASE_DIR / "static"]      # sources
+STATIC_ROOT = BASE_DIR / "staticfiles"        # collectstatic
 
 if PROD:
     STORAGES = {
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",  # ← plus de manifest
         }
     }
 else:
@@ -199,15 +157,14 @@ if SENTRY_DSN:
             send_default_pii=False,
         )
     except ModuleNotFoundError:
-        logging.warning("⚠️  sentry-sdk non installé → Sentry désactivé")
+        logging.warning("⚠️  sentry-sdk absent → Sentry désactivé")
 
-# ─────────────────── 9. Bannière de démarrage ─────────────────────────
+# ─────────────────── 9. Bannière ──────────────────────────────────────
 print("\n".join([
     "=" * 80,
     f"Mode        : {'PROD' if PROD else 'DEV'}",
     f"DEBUG       : {DEBUG}",
-    f"ALLOWED     : {', '.join(ALLOWED_HOSTS) or '<aucun>'}",
-    f"CSRF Origin : {', '.join(CSRF_TRUSTED_ORIGINS) or '<aucun>'}",
+    f"Templates   : {BASE_DIR / 'templates'}",
     f"UTC start   : {datetime.datetime.utcnow().isoformat()}",
     "=" * 80,
 ]))
