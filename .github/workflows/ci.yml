@@ -90,12 +90,12 @@ jobs:
     if: needs.docker.result == 'success'
     runs-on: ubuntu-latest
     env:
-      NF_TOKEN:       ${{ secrets.NORTHFLANK_TOKEN }}        # nf_pat_…
-      NF_PROJECT_ID:  ${{ secrets.NF_PROJECT_ID }}   # UUID projet
-      NF_OBJECT_ID:   ${{ secrets.NF_OBJECT_ID }}    # UUID service
+      NF_TOKEN:       ${{ secrets.NORTHFLANK_TOKEN }}    # nf_pat_…
+      NF_PROJECT_ID:  ${{ secrets.NF_PROJECT_ID }}       # UUID ou slug projet
+      NF_OBJECT_ID:   ${{ secrets.NF_OBJECT_ID }}        # UUID ou slug service
     steps:
       - name: Trigger Northflank build
-        continue-on-error: true      # laisse le job passer même si 4xx/5xx
+        continue-on-error: true          # laisse le job passer même si 4xx/5xx
         run: |
           set -euo pipefail
           API="https://api.northflank.com/v1/projects/${NF_PROJECT_ID}/services/${NF_OBJECT_ID}/build"
@@ -103,7 +103,7 @@ jobs:
 
           http=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
                   -X POST "$API" \
-                  -H "X-NF-API-KEY: ${NF_TOKEN}" \
+                  -H "Authorization: Bearer ${NF_TOKEN}" \
                   -H "Content-Type: application/json" \
                   -d '{"reason":"GitHub Action auto-build"}')
 
