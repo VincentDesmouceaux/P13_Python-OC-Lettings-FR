@@ -85,6 +85,7 @@ jobs:
 ##############################################################################
 # 3 · DEPLOY NORTHFLANK
 ##############################################################################
+# .github/workflows/ci.yml (extrait corrigé)
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
@@ -99,7 +100,8 @@ jobs:
           set -euo pipefail
           echo "💡 Redeploy ${NF_PROJECT}/${NF_SERVICE}"
           curl -sSf -X POST \
-            "https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/deploy" \
+            "https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/build" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{ "reason": "GitHub Action auto-deploy" }'
+    
