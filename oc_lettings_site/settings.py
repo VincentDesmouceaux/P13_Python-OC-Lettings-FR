@@ -1,3 +1,4 @@
+
 """
 Django settings – sécurisées pour déploiement Northflank / Code.run
 -------------------------------------------------------------------
@@ -8,6 +9,7 @@ Django settings – sécurisées pour déploiement Northflank / Code.run
 """
 
 from __future__ import annotations
+import secrets
 
 import datetime
 import logging
@@ -45,9 +47,15 @@ DEBUG: bool = str2bool(os.getenv("DJANGO_DEBUG"), default=True)
 PROD: bool = not DEBUG and not RUNNING_TESTS
 
 # ─────────────────────────── 2. Clés & hosts ──────────────────────────
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
-    raise RuntimeError("DJANGO_SECRET_KEY must be set!")
+    if RUNNING_TESTS:
+        SECRET_KEY = "test-secret-key"
+    elif DEBUG:
+        SECRET_KEY = "dev-secret-key"
+    else:
+        raise RuntimeError("DJANGO_SECRET_KEY must be set in production!")
 
 ALLOWED_HOSTS: List[str] = csv_env("DJANGO_ALLOWED_HOSTS")
 
