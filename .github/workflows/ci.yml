@@ -1,93 +1,75 @@
 # .github/workflows/ci.yml
-name: CI – lint, tests, build & deploy
+name: CI – lint, tests & Northflank build
 
 on:
   push:            { branches: ['**'] }
   pull_request:    {}
-  workflow_dispatch:
+  workflow_dispatch: {}
 
-##############################################################################
-# Variables publiques (les sensibles sont stockées dans Settings ▸ Secrets)
-##############################################################################
+################################################################################
+# Variables publiques (tout le reste est en secrets)
+################################################################################
 env:
-  PY_VER: ${{ secrets.PY_VER }}
+  PY_VER: '3.12'                       # version de Python pour les tests
 
-##############################################################################
 jobs:
-##############################################################################
-
-# ───────────────────────────── 1 · TESTS ────────────────────────────────
+################################################################################
+# 1 · TESTS
+################################################################################
   test:
     runs-on: ubuntu-latest
-    env:
-      DJANGO_SECRET_KEY: ci-dummy-secret
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PY_VER }}
+
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-      - name: Install deps, lint & test
+
+      - name: Install deps, lint & tests
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
           flake8 .
-          pytest --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=80
+          pytest -q --cov=. --cov-fail-under=80
 
-# ───────────────────────── 2 · BUILD & PUSH ────────────────────────────
-  docker:
+################################################################################
+# 2 · TRIGGER BUILD SUR NORTHFLANK (service Combined)
+################################################################################
+  trigger-build:
     needs: test
-    if: >
-      needs.test.result == 'success' &&
-      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
-    runs-on: ubuntu-latest
-    permissions: { contents: read, packages: write }
-    env:
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}   # ex : vincentdesmouceaux/oc-lettings-site
-      IMAGE_TAG:  ${{ secrets.IMAGE_TAG }}      # latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build & push (amd64 + arm64)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
-            ${{ env.DOCKER_REPO }}:${{ github.sha }}
-          build-args: GIT_SHA=${{ github.sha }}
-          cache-from: type=gha
-          cache-to:   type=gha,mode=max
-          provenance: false
-
-# ───────────────────────── 3 · DEPLOY NORTHFLANK ─────────────────────────
-  deploy:
-    needs: docker
-    if: needs.docker.result == 'success'
+    if: needs.test.result == 'success'
     runs-on: ubuntu-latest
     env:
-      NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}   # token avec permission “Update Deployment”
-      NF_PROJECT:   ${{ secrets.NF_PROJECT }}         # slug/ID exact du projet
-      NF_SERVICE:   ${{ secrets.NF_SERVICE }}         # slug/ID exact du service Deployment
+      NF_TOKEN:        ${{ secrets.NORTHFLANK_TOKEN }}        # API token (scope : Build service)
+      NF_PROJECT_ID:   ${{ secrets.NF_PROJECT_ID }}   # ID du projet (pas le slug)
+      NF_OBJECT_ID:    ${{ secrets.NF_OBJECT_ID }}    # ID du service Combined
     steps:
-      - name: Redeploy on Northflank
+      - name: Trigger Northflank Combined build
         run: |
           set -euo pipefail
-          ENDPOINT="https://api.northflank.com/v1/projects/${NF_PROJECT}/services/${NF_SERVICE}/deploy"
-          echo "🔄  Redeploy ${NF_PROJECT}/${NF_SERVICE}…"
-          HTTP_CODE=$(curl -sS -o /tmp/nf.json -w '%{http_code}' \
-                     -X POST "$ENDPOINT" \
-                     -H "X-NF-API-KEY: ${NF_API_TOKEN}")
-          cat /tmp/nf.json || true
-          echo "↪︎ HTTP $HTTP_CODE"
-          [[ "$HTTP_CODE" =~ ^2[0-9]{2}$ ]] && echo "✅ OK" || { echo "❌ KO"; exit 1; }
+
+          ENDPOINT="https://api.northflank.com/v1/projects/${NF_PROJECT_ID}/services/${NF_OBJECT_ID}/build"
+          echo "🔗 Endpoint  : $ENDPOINT"
+          echo "🚀 Projet/Service : ${NF_PROJECT_ID}/${NF_OBJECT_ID}"
+          
+          HTTP_CODE=$(curl -sS -o /tmp/nf_resp.json -w '%{http_code}' \
+                       -X POST "$ENDPOINT" \
+                       -H "X-NF-API-KEY: ${NF_TOKEN}" \
+                       -H "Content-Type: application/json" \
+                       -d '{"reason":"GitHub Action auto-build"}')
+
+          echo "↩︎ HTTP $HTTP_CODE"
+          cat /tmp/nf_resp.json || true
+
+          if [[ "$HTTP_CODE" =~ ^2[0-9]{2}$ ]]; then
+            echo "✅ Build déclenché — suivez-le sur https://app.northflank.com/s/${NF_OBJECT_ID}"
+            echo "🌐 Site (quand déployé) : https://p01--holiday-homes--c7br8w6v87r6.code.run"
+          else
+            echo "❌ Northflank build failed (HTTP $HTTP_CODE)" >&2
+            exit 1
+          fi
