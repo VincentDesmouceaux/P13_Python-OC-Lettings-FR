@@ -3,17 +3,19 @@
 # ─────────────────────────────────────────────────────────────
 FROM python:3.12-slim-bullseye
 
-# Ensure all system packages are up-to-date to reduce vulnerabilities
-RUN apt-get update -qq && apt-get -y --no-install-recommends upgrade && apt-get clean && rm -rf /var/lib/apt/lists/*
+# --- Arguments de build ------------------------------------
+ARG GIT_SHA=dev
+ARG COLLECTSTATIC=0          # 0 par défaut – 1 passé par le CI
 
-LABEL org.opencontainers.image.source="https://github.com/VincentDesmouceaux/P13_Python-OC-Lettings-FR"
-
-# ─── Variables d’environnement par défaut (écrasables à l’exécution) ───
-ENV PYTHONUNBUFFERED=1 \
+# --- Variables d’environnement exécutables dans chaque RUN --
+ENV \
+    PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     DJANGO_DEBUG=false \
     DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1,0.0.0.0" \
-    WHITENOISE_MANIFEST_STRICT=false
+    WHITENOISE_MANIFEST_STRICT=false \
+    GIT_SHA=${GIT_SHA} \
+    COLLECTSTATIC=${COLLECTSTATIC}
 
 WORKDIR /app
 
@@ -32,7 +34,7 @@ RUN python -m pip install --upgrade pip \
 # 3) code
 COPY . .
 
-# 4) collectstatic
+# 4) collectstatic (clé temporaire gérée par settings.py quand COLLECTSTATIC=1)
 RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
