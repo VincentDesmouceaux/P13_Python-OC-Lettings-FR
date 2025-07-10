@@ -85,23 +85,65 @@ jobs:
 ##############################################################################
 # 3 · DEPLOY NORTHFLANK
 ##############################################################################
-# .github/workflows/ci.yml (extrait corrigé)
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
     runs-on: ubuntu-latest
     env:
       NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
+      NF_TEAM:      ${{ secrets.NF_TEAM }}
       NF_PROJECT:   ${{ secrets.NF_PROJECT }}
       NF_SERVICE:   ${{ secrets.NF_SERVICE }}
     steps:
-      - name: Trigger deployment
+      - name: Trigger deployment with debug
         run: |
-          set -euo pipefail
-          echo "💡 Redeploy ${NF_PROJECT}/${NF_SERVICE}"
-          curl -sSf -X POST \
-            "https://api.northflank.com/v1/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/build" \
+          set -euxo pipefail  # Active le mode verbeux
+          
+          # Afficher les valeurs des variables
+          echo "=== DEBUG ==="
+          echo "NF_TEAM: ${NF_TEAM}"
+          echo "NF_PROJECT: ${NF_PROJECT}"
+          echo "NF_SERVICE: ${NF_SERVICE}"
+          echo "API_ENDPOINT: https://api.northflank.com/v1/teams/${NF_TEAM}/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/build"
+          
+          # Construire l'URL complète
+          URL="https://api.northflank.com/v1/teams/${NF_TEAM}/projects/by-slug/${NF_PROJECT}/services/by-slug/${NF_SERVICE}/build"
+          
+          # Tester la connexion avec une requête GET
+          echo "=== TEST CONNEXION (GET) ==="
+          curl -sS -i -X GET "https://api.northflank.com/v1/teams/${NF_TEAM}/projects/by-slug/${NF_PROJECT}" \
+            -H "Authorization: Bearer ${NF_API_TOKEN}" || true
+          
+          # Envoyer la requête POST avec sortie détaillée
+          echo "=== ENVOI REQUÊTE POST ==="
+          response=$(curl -sS -w "\nHTTP_CODE=%{http_code}" -X POST "$URL" \
             -H "Authorization: Bearer ${NF_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d '{ "reason": "GitHub Action auto-deploy" }'
-    
+            -d '{ "reason": "GitHub Action auto-deploy" }' 2>&1)
+          
+          # Extraire le code HTTP et le corps de la réponse
+          http_code=$(echo "$response" | grep HTTP_CODE | cut -d'=' -f2)
+          response_body=$(echo "$response" | sed '/HTTP_CODE/d')
+          
+          # Afficher les résultats
+          echo "=== RÉPONSE ==="
+          echo "HTTP Code: $http_code"
+          echo "Response Body:"
+          echo "$response_body"
+          
+          # Vérifier le code HTTP
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Déploiement déclenché avec succès"
+          else
+            echo "❌ ERREUR: Échec du déclenchement du déploiement (HTTP $http_code)"
+            echo "=== CONSEILS DE DÉPANNAGE ==="
+            echo "1. Vérifiez les slugs dans Northflank:"
+            echo "   - Team: https://app.northflank.com/t/${NF_TEAM}"
+            echo "   - Projet: https://app.northflank.com/t/${NF_TEAM}/project/${NF_PROJECT}"
+            echo "   - Service: https://app.northflank.com/t/${NF_TEAM}/project/${NF_PROJECT}/services/${NF_SERVICE}"
+            echo "2. Vérifiez les permissions du token API:"
+            echo "   - Allez sur https://app.northflank.com/settings/tokens"
+            echo "3. Testez manuellement:"
+            echo "   curl -X POST '$URL' -H 'Authorization: Bearer XXX'"
+            exit 1
+          fi
