@@ -6,26 +6,27 @@ name: CI – lint, tests, build & deploy
 ##############################################################################
 on:
   push:            { branches: ['**'] }
-  pull_request:    {}
+  pull_request:
   workflow_dispatch:
 
 ##############################################################################
-# Variables globales « publiques » (tout le reste passe par les secrets)
+# Variables “publiques” (tout le reste vient des secrets)
 ##############################################################################
 env:
-  PY_VER: ${{ secrets.PY_VER }}
+  PY_VER: ${{ secrets.PY_VER }}          # ex. 3.12
 
 ##############################################################################
-# 1 · TESTS
-##############################################################################
 jobs:
+##############################################################################
+
+# ---------------------------------------------------------------------------
+# 1 · TESTS
+# ---------------------------------------------------------------------------
   test:
     runs-on: ubuntu-latest
     env:
-      PY_VER: ${{ secrets.PY_VER }}
-      # Clé factice – pas indispensable (fallback « test-secret-key »),
-      # mais explicite et réutilisable localement si besoin
-      DJANGO_SECRET_KEY: ci-dummy-secret
+      PY_VER:            ${{ secrets.PY_VER }}
+      DJANGO_SECRET_KEY: ci-dummy-secret      # clé factice pour la phase tests
     steps:
       - uses: actions/checkout@v4
 
@@ -38,35 +39,30 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
 
-      - name: Install deps, lint & test
+      - name: Install deps, lint & tests
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
           flake8 .
-          pytest --cov=. \
-                 --cov-report=xml \
-                 --cov-report=term-missing \
-                 --cov-fail-under=80
+          pytest --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=80
 
-##############################################################################
-# 2 · BUILD & PUSH (master/main uniquement)
-##############################################################################
+# ---------------------------------------------------------------------------
+# 2 · BUILD & PUSH  (seulement sur master/main)
+# ---------------------------------------------------------------------------
   docker:
     needs: test
     if: >
       needs.test.result == 'success' &&
       (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    permissions: { contents: read, packages: write }
     env:
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
-      IMAGE_TAG:  ${{ secrets.IMAGE_TAG }}
+      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}      # ex. vincentdesmouceaux/oc-lettings-site
+      IMAGE_TAG:  ${{ secrets.IMAGE_TAG }}         # ex. latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v3          # multi-arch
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
@@ -74,7 +70,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push (amd64 + arm64)
+      - name: Build & push image (amd64 + arm64)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -83,66 +79,47 @@ jobs:
           tags: |
             ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
             ${{ env.DOCKER_REPO }}:${{ github.sha }}
-          # 👉 nouvel ARG pour activer la clé « collectstatic-secret-key »
           build-args: |
             GIT_SHA=${{ github.sha }}
             COLLECTSTATIC=1
           cache-from: type=gha
           cache-to:   type=gha,mode=max
-          provenance: false      # manifest + léger
+          provenance: false          # manifest plus léger
 
-##############################################################################
-# 3 · DEPLOY NORTHFLANK
-##############################################################################
+# ---------------------------------------------------------------------------
+# 3 · DEPLOY NORTHFLANK  (service “Deployment”)
+# ---------------------------------------------------------------------------
   deploy:
     needs: docker
     if: needs.docker.result == 'success'
     runs-on: ubuntu-latest
     env:
-      NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
-      NF_TEAM:      ${{ secrets.NF_TEAM }}
-      NF_PROJECT:   ${{ secrets.NF_PROJECT }}
-      NF_SERVICE:   ${{ secrets.NF_SERVICE }}
+      NF_API_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}   # PAT Northflank (X-NF-API-KEY)
+      NF_TEAM:      ${{ secrets.NF_TEAM }}            # slug team   (ex. desmontvincent)
+      NF_PROJECT:   ${{ secrets.NF_PROJECT }}         # slug projet (ex. vintedbackendtestone)
+      NF_SERVICE:   ${{ secrets.NF_SERVICE }}         # slug service(ex. holiday-homes)
     steps:
-      - name: Trigger deployment with debug
+      - name: Trigger redeploy on Northflank
         run: |
-          set -euxo pipefail
-          
-          URL="https://api.northflank.com/v1/teams/${NF_TEAM}/projects/${NF_PROJECT}/services/${NF_SERVICE}/build"
-          
-          echo "=== DEBUG ==="
-          echo "NF_TEAM:    ${NF_TEAM}"
-          echo "NF_PROJECT: ${NF_PROJECT}"
-          echo "NF_SERVICE: ${NF_SERVICE}"
-          echo "API_ENDPOINT: $URL"
-          
-          echo "=== TEST CONNEXION (GET SERVICE) ==="
-          curl -sS -i -X GET "https://api.northflank.com/v1/teams/${NF_TEAM}/projects/${NF_PROJECT}/services/${NF_SERVICE}" \
-            -H "Authorization: Bearer ${NF_API_TOKEN}" || true
-          
-          echo "=== ENVOI REQUÊTE POST ==="
-          response=$(curl -sS -i -X POST "$URL" \
-            -H "Authorization: Bearer ${NF_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d '{ "reason": "GitHub Action auto-deploy" }' 2>&1)
-          
-          echo "=== RÉPONSE COMPLÈTE ==="
-          echo "$response"
-          
-          http_code=$(echo "$response" | grep -oP 'HTTP/\\S+ \\K\\d+' | head -1)
-          
-          if [[ "$http_code" =~ ^2[0-9]{2}$ ]]; then
-            echo "✅ Déploiement déclenché avec succès (HTTP $http_code)"
+          set -euo pipefail
+
+          ENDPOINT="https://api.northflank.com/v1/teams/${NF_TEAM}/projects/${NF_PROJECT}/services/${NF_SERVICE}/deploy"
+
+          echo "💡  Endpoint: $ENDPOINT"
+          echo "🔄 Déclenchement du redeploy pour ${NF_TEAM}/${NF_PROJECT}/${NF_SERVICE} ..."
+
+          # Appel — pas besoin de corps JSON pour un service Deployment
+          HTTP_CODE=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
+            -X POST "$ENDPOINT" \
+            -H "X-NF-API-KEY: ${NF_API_TOKEN}" \
+            -H "Content-Type: application/json")
+
+          cat /tmp/resp.json || true
+          echo "↪︎ HTTP $HTTP_CODE"
+
+          if [[ "$HTTP_CODE" =~ ^2[0-9]{2}$ ]]; then
+              echo "✅ Redeploy lancé avec succès."
           else
-            echo "❌ ERREUR: Échec du déclenchement du déploiement (HTTP $http_code)"
-            echo "=== CONSEILS DE DÉPANNAGE ==="
-            echo "1. Vérifiez les slugs dans Northflank:"
-            echo "   - Team: https://app.northflank.com/t/${NF_TEAM}"
-            echo "   - Projet: https://app.northflank.com/t/${NF_TEAM}/project/${NF_PROJECT}"
-            echo "   - Service: https://app.northflank.com/t/${NF_TEAM}/project/${NF_PROJECT}/services/${NF_SERVICE}"
-            echo "2. Vérifiez les permissions du token API:"
-            echo "   - https://app.northflank.com/settings/tokens"
-            echo "3. Testez manuellement:"
-            echo "   curl -X POST '$URL' -H 'Authorization: Bearer YOUR_TOKEN'"
-            exit 1
+              echo "❌ Échec du redeploy."
+              exit 1
           fi
