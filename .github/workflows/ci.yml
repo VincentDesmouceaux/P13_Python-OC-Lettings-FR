@@ -94,16 +94,15 @@ jobs:
         uses: getsentry/action-release@v1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG:        ${{ secrets.SENTRY_ORG }}      # ex : vincentdesmouceaux
-          SENTRY_PROJECT:    ${{ secrets.SENTRY_PROJECT }}  # ex : python-django
-          SENTRY_URL:        https://sentry.io              # ← laisse par défaut (cloud)
+          SENTRY_ORG:        media-by            # slug exact de l’orga
+          SENTRY_PROJECT:    python-django       # slug exact du projet
         with:
-          environment:  production
+          environment: production
           version:      ${{ github.sha }}
-          projects:     ${{ secrets.SENTRY_PROJECT }}
-          set_commits:  auto           # associe automatiquement les commits
-          finalize:     true           # marque la release comme déployée
-          ignore_missing: true         # évite l’échec si release précédente inconnue
+          projects:     "${{ secrets.SENTRY_PROJECT }}"   # ← guillemets indispensables
+          set_commits:  auto
+          ignore_missing: true
+
 
 
   ##########################################################################
