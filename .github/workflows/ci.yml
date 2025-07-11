@@ -3,15 +3,17 @@ name: CI – lint, tests, build & deploy
 
 on:
   push:
-    branches: ['**']            # toutes les branches
+    branches: ['**']
   pull_request: {}
   workflow_dispatch: {}
 
 ##############################################################################
-# Variables publiques (tout le reste passe par les secrets)
+# Variables publiques
 ##############################################################################
 env:
-  PY_VER: ${{ secrets.PY_VER }}   # ex. 3.12
+  PY_VER: ${{ secrets.PY_VER }}          # ex. 3.12
+  SENTRY_ORG: ${{ secrets.SENTRY_ORG }}  #  ← ajout
+  SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
 jobs:
   ##########################################################################
@@ -54,8 +56,9 @@ jobs:
       contents: read
       packages: write
     env:
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}   # vincentdesmouceaux/oc-lettings-site
+      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
       IMAGE_TAG:  ${{ secrets.IMAGE_TAG }}      # latest
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -68,6 +71,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build & push (amd64 + arm64)
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -82,6 +86,20 @@ jobs:
           cache-to:   type=gha,mode=max
           provenance: false
 
+      # ────────────────────────────────────────────────────────────────
+      #  ➜ Création / envoi de la release Sentry
+      # ----------------------------------------------------------------
+      - name: Notify Sentry release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ env.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG:        ${{ env.SENTRY_ORG }}
+          SENTRY_PROJECT:    ${{ env.SENTRY_PROJECT }}
+        with:
+          environment: production
+          version: ${{ github.sha }}
+          projects: ${{ env.SENTRY_PROJECT }}
+
   ##########################################################################
   # 3 · DEPLOY NORTHFLANK  (service Combined → /build)
   ##########################################################################
@@ -90,12 +108,12 @@ jobs:
     if: needs.docker.result == 'success'
     runs-on: ubuntu-latest
     env:
-      NF_TOKEN:       ${{ secrets.NORTHFLANK_TOKEN }}    # nf_pat_…
-      NF_PROJECT_ID:  ${{ secrets.NF_PROJECT_ID }}       # UUID ou slug projet
-      NF_OBJECT_ID:   ${{ secrets.NF_OBJECT_ID }}        # UUID ou slug service
+      NF_TOKEN:       ${{ secrets.NORTHFLANK_TOKEN }}
+      NF_PROJECT_ID:  ${{ secrets.NF_PROJECT_ID }}
+      NF_OBJECT_ID:   ${{ secrets.NF_OBJECT_ID }}
     steps:
       - name: Trigger Northflank build
-        continue-on-error: true          # laisse le job passer même si 4xx/5xx
+        continue-on-error: true
         run: |
           set -euo pipefail
           API="https://api.northflank.com/v1/projects/${NF_PROJECT_ID}/services/${NF_OBJECT_ID}/build"
