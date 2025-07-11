@@ -13,6 +13,7 @@ ENV \
     # paramètres Django
     DJANGO_DEBUG=false \
     DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1,0.0.0.0,holiday-homes,.code.run" \
+    DJANGO_CSRF_TRUSTED_ORIGINS="https://*.code.run" \
     WHITENOISE_MANIFEST_STRICT=false \
     # port par défaut : sera écrasé par Northflank si PORT est injecté
     PORT=8000
