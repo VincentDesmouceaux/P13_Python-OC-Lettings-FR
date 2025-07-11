@@ -157,6 +157,8 @@ LOGGING: Dict[str, Any] = {
 
 # ─────────────────────────── 8. Sentry (optionnel) ───────────────────
 SENTRY_DSN = os.getenv("SENTRY_DSN")
+SENTRY_RELEASE = os.getenv("SENTRY_RELEASE", "dev")        # ← NOUVEAU
+
 if SENTRY_DSN:
     try:
         import sentry_sdk  # type: ignore
@@ -171,10 +173,12 @@ if SENTRY_DSN:
             ],
             traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE", "0.1")),
             environment="production" if PROD else "development",
+            release=SENTRY_RELEASE,                 # ← ajoute la release
             send_default_pii=False,
         )
     except ModuleNotFoundError:
         logging.warning("⚠️  sentry-sdk absent → Sentry désactivé")
+
 
 # ─────────────────── 9. Bannière ──────────────────────────────────────
 print("\n".join([

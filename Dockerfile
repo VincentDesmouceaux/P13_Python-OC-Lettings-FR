@@ -5,8 +5,13 @@ FROM python:3.12-slim-bullseye
 
 LABEL org.opencontainers.image.source="https://github.com/VincentDesmouceaux/P13_Python-OC-Lettings-FR"
 
+# 0) SHA du commit : injecté depuis le workflow
+ARG GIT_SHA=dev
+
 # ─── Variables d’environnement par défaut (écrasables à l’exécution) ───
 ENV \
+    # propagation de la release à Sentry
+    SENTRY_RELEASE=${GIT_SHA} \
     # comportement Python
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -42,5 +47,4 @@ RUN python manage.py collectstatic --noinput
 EXPOSE ${PORT}
 
 # ─── Commande de démarrage ───
-# Utilise le port injecté (ou 8000 par défaut) sans rebuild d’image.
 CMD ["sh", "-c", "gunicorn oc_lettings_site.wsgi:application -b 0.0.0.0:${PORT} --timeout 120"]

@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: CI – lint, tests, build & deploy
 
 on:
@@ -7,12 +8,10 @@ on:
   workflow_dispatch: {}
 
 ##############################################################################
-# Variables publiques
+# 0 · Variables globales accessibles dans tout le workflow
 ##############################################################################
 env:
-  PY_VER:          ${{ secrets.PY_VER }}
-  SENTRY_ORG:      ${{ secrets.SENTRY_ORG }}
-  SENTRY_PROJECT:  ${{ secrets.SENTRY_PROJECT }}
+  PY_VER: ${{ secrets.PY_VER }}
 
 jobs:
   ##########################################################################
@@ -43,7 +42,7 @@ jobs:
           pytest --cov=. --cov-fail-under=80
 
   ##########################################################################
-  # 2 · BUILD & PUSH (uniquement sur master/main)
+  # 2 · BUILD & PUSH (master/main uniquement) + RELEASE SENTRY
   ##########################################################################
   docker:
     needs: test
@@ -55,13 +54,12 @@ jobs:
       contents: read
       packages: write
     env:
-      DOCKER_REPO:       ${{ secrets.DOCKER_REPO }}
-      IMAGE_TAG:         ${{ secrets.IMAGE_TAG }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
+      IMAGE_TAG:  ${{ secrets.IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0                         # nécessaire pour Sentry
+          fetch-depth: 0            # nécessaire pour set_commits:auto
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -88,22 +86,21 @@ jobs:
           provenance: false
 
       # ─────────────────────────────────────────────
-      #  ➜ Envoi de la release à Sentry
+      #  ➜ Notification de release à Sentry Cloud EU
       # ─────────────────────────────────────────────
       - name: Notify Sentry release
         uses: getsentry/action-release@v1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG:        media-by            # slug exact de l’orga
-          SENTRY_PROJECT:    python-django       # slug exact du projet
+          SENTRY_ORG:        ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT:    ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_URL:        ${{ secrets.SENTRY_URL }} 
         with:
           environment: production
           version:      ${{ github.sha }}
-          projects:     "${{ secrets.SENTRY_PROJECT }}"   # ← guillemets indispensables
+          projects:     "${{ secrets.SENTRY_PROJECT }}"
           set_commits:  auto
           ignore_missing: true
-
-
 
   ##########################################################################
   # 3 · DEPLOY NORTHFLANK  (service Combined → /build)
