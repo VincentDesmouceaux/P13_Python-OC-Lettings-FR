@@ -92,13 +92,13 @@ jobs:
       - name: Notify Sentry release
         uses: getsentry/action-release@v1
         env:
-          SENTRY_AUTH_TOKEN: ${{ env.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG:        ${{ env.SENTRY_ORG }}
-          SENTRY_PROJECT:    ${{ env.SENTRY_PROJECT }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG:        ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT:    ${{ secrets.SENTRY_PROJECT }}
         with:
           environment: production
           version: ${{ github.sha }}
-          projects: ${{ env.SENTRY_PROJECT }}
+          projects: ${{ secrets.SENTRY_PROJECT }}
 
   ##########################################################################
   # 3 · DEPLOY NORTHFLANK  (service Combined → /build)
