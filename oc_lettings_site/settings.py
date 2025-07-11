@@ -42,6 +42,23 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
 ALLOWED_HOSTS = [
     h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()
 ]
+# settings.py   (ajoute ces quelques lignes ≈ section 2 “Clés & hosts”)
+# ─────────────────────────── 2.b CSRF trusted origins ────────────────
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
+]
+
+# Derrière le proxy Northflank, force le header X-Forwarded-Proto
+if str2bool(os.getenv("DJANGO_BEHIND_PROXY", "false")):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# En prod, on exige aussi les origins CSRF
+if PROD and not CSRF_TRUSTED_ORIGINS:
+    raise ValueError(
+        "CSRF_TRUSTED_ORIGINS must be set in production! "
+        "Define DJANGO_CSRF_TRUSTED_ORIGINS in your environment variables."
+    )
+
 # autorise toujours localhost pour les prévisualisations locales Docker
 if RUNSERVER and DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost", "0.0.0.0"]
