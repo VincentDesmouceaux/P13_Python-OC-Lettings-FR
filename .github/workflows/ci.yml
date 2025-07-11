@@ -93,14 +93,18 @@ jobs:
       - name: Notify Sentry release
         uses: getsentry/action-release@v1
         env:
-          SENTRY_AUTH_TOKEN: ${{ env.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG:        ${{ env.SENTRY_ORG }}
-          SENTRY_PROJECT:    ${{ env.SENTRY_PROJECT }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG:        ${{ secrets.SENTRY_ORG }}      # ex : vincentdesmouceaux
+          SENTRY_PROJECT:    ${{ secrets.SENTRY_PROJECT }}  # ex : python-django
+          SENTRY_URL:        https://sentry.io              # ← laisse par défaut (cloud)
         with:
-          environment: production
-          version:     ${{ github.sha }}
-          projects:    ${{ env.SENTRY_PROJECT }}
-          set_commits: auto
+          environment:  production
+          version:      ${{ github.sha }}
+          projects:     ${{ secrets.SENTRY_PROJECT }}
+          set_commits:  auto           # associe automatiquement les commits
+          finalize:     true           # marque la release comme déployée
+          ignore_missing: true         # évite l’échec si release précédente inconnue
+
 
   ##########################################################################
   # 3 · DEPLOY NORTHFLANK  (service Combined → /build)
