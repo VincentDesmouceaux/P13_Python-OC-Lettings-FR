@@ -9,3 +9,5 @@ staticfiles/
 coverage.xml
 htmlcov/
 .coveragerc
+schema-annotated.png
+erd.pdf
