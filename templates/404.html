@@ -1,9 +1,31 @@
+{#
+    Template : 404.html
+    ────────────────────
+    Page d’erreur 404 (Page not found).
+
+    Hérite de la structure de base (base.html) et définit :
+    • Bloc `title`   : titre de l’onglet navigateur (« Page not found »)
+    • Bloc `content` : message d’erreur et lien de retour à l’accueil
+#}
+
 {% extends "base.html" %}
+
+{# ─────────────────────────────────────────────────────────────
+   Bloc title — affiché dans la balise <title> du navigateur
+   ───────────────────────────────────────────────────────────── #}
 {% block title %}Page not found{% endblock %}
+
+{# ─────────────────────────────────────────────────────────────
+   Bloc content — message 404 et bouton de retour à l’accueil
+   ───────────────────────────────────────────────────────────── #}
 {% block content %}
-<div class="container py-5 text-center">
+  <div class="container py-5 text-center">
     <h1 class="display-4">Oups ! 404</h1>
-    <p class="lead">La page demandée n’existe pas.</p>
-    <a class="btn btn-primary mt-3" href="{% url 'index' %}">Retour à l’accueil</a>
-</div>
+    <p class="lead">
+      La page demandée n’existe pas.
+    </p>
+    <a class="btn btn-primary mt-3" href="{% url 'index' %}">
+      Retour à l’accueil
+    </a>
+  </div>
 {% endblock %}
