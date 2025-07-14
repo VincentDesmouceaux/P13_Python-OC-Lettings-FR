@@ -1,33 +1,9 @@
-{#
-    Template : 500.html
-    ────────────────────
-    Page d’erreur 500 (Internal Server Error).
-
-    Hérite de la structure générale définie dans base.html :
-
-    • Bloc `title`   : titre de l’onglet navigateur
-    • Bloc `content` : contenu affiché en cas d’erreur serveur
-#}
-
 {% extends "base.html" %}
-
-{# ─────────────────────────────────────────────────────────────
-   Bloc title : affiché dans la balise <title> du document
-   ───────────────────────────────────────────────────────────── #}
 {% block title %}Server error{% endblock %}
-
-{# ─────────────────────────────────────────────────────────────
-   Bloc content : message principal et bouton de retour à l’accueil
-   ───────────────────────────────────────────────────────────── #}
 {% block content %}
-  <div class="container py-5 text-center">
+<div class="container py-5 text-center">
     <h1 class="display-4">Oups ! 500</h1>
-    <p class="lead">
-      Une erreur interne est survenue.<br>
-      Nos équipes ont été prévenues.
-    </p>
-    <a class="btn btn-primary mt-3" href="{% url 'index' %}">
-      Retour à l’accueil
-    </a>
-  </div>
+    <p class="lead">Une erreur interne est survenue.<br>Nos équipes ont été prévenues.</p>
+    <a class="btn btn-primary mt-3" href="{% url 'index' %}">Retour à l’accueil</a>
+</div>
 {% endblock %}
