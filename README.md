@@ -96,3 +96,62 @@ Nous utilisons Sentry pour capturer les erreurs en production :
 2. Redémarrer l’application.  
 3. Vérifier l’onglet « Issues » dans votre projet Sentry.
 
+## Déploiement
+
+### Aperçu du processus de déploiement
+
+Le projet utilise une pipeline **CI/CD GitHub Actions** couplée à la plateforme **Northflank** pour automatiser le déploiement en production. À chaque push sur la branche principale (`master`/`main`), la suite suivante est exécutée :
+
+1. **Tests & Linting**  
+   - Lancement des tests unitaires (Pytest avec couverture > 80 %)  
+   - Vérification de la qualité du code avec Flake8  
+   Si une erreur survient, la pipeline s’arrête et empêche la suite du déploiement.
+
+2. **Build de l’image Docker**  
+   - Construction d’une image multi-architecture (amd64/arm64) à partir du `Dockerfile`.  
+   - Injection de la variable `SENTRY_RELEASE=${GIT_SHA}` pour tracer la version.  
+   - Push de l’image sur Docker Hub sous les tags `${DOCKER_REPO}:${IMAGE_TAG}` et `${DOCKER_REPO}:${GITHUB_SHA}`.
+
+3. **Publication & Release**  
+   - Notification d’une nouvelle release à Sentry (via `getsentry/action-release@v1`) pour centraliser le suivi des versions.
+
+4. **Déploiement sur Northflank**  
+   - Trigger d’un build via l’API Northflank (`POST /projects/${NF_PROJECT_ID}/services/${NF_OBJECT_ID}/build`).  
+   - Northflank récupère l’image publiée et redéploie le conteneur.  
+   - En fin de job, l’URL du service (ex. `https://<nom>-<projet>.code.run`) est affichée dans les logs.
+
+> **Remarque**  
+> - **DEV** (DEBUG=true) : les fichiers statiques sont servis depuis `static/`.  
+> - **PROD** (DEBUG=false) : `manage.py collectstatic` génère `staticfiles/` servi par WhiteNoise (middleware activé automatiquement).
+
+---
+
+### Configuration requise
+
+1. **Variables d’environnement de l’application** (`.env` ou équivalent)  
+   Un fichier `.env.example` est fourni ci-dessous. Les variables essentielles :  
+   - `DJANGO_DEBUG=false`  
+   - `DJANGO_SECRET_KEY`  
+   - `DJANGO_ALLOWED_HOSTS` (ex. `*.code.run`)  
+   - `DJANGO_CSRF_TRUSTED_ORIGINS` (ex. `https://*.code.run`)  
+   - `DJANGO_BEHIND_PROXY=true`  
+   - `LOG_LEVEL=INFO`  
+   - `WHITENOISE_MANIFEST_STRICT=false`  
+   - `SENTRY_DSN` (+ `SENTRY_TRACES_SAMPLE`, optionnel)  
+   - `PORT`, `PY_VER`, `DOCKER_REPO`, `IMAGE_TAG`  
+   - Northflank : `NORTHFLANK_TOKEN`, `NF_PROJECT_ID`, `NF_OBJECT_ID`
+
+2. **Secrets GitHub Actions**  
+   Dans les Settings > Secrets du repo :  
+   - `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN`  
+   - `DOCKER_REPO` / `IMAGE_TAG`  
+   - `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_URL`  
+   - `NORTHFLANK_TOKEN` / `NF_PROJECT_ID` / `NF_OBJECT_ID`  
+   - `PY_VER`
+
+3. **Variables Northflank (service)**  
+   Dans l’UI Northflank, configurez les mêmes variables d’application (**sans** CI-only tokens). Veillez à inclure `DJANGO_ALLOWED_HOSTS` et `DJANGO_CSRF_TRUSTED_ORIGINS`.
+
+---
+
+
