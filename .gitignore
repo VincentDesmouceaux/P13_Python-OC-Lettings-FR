@@ -5,3 +5,7 @@ venv
 .env.dev
 .env.prod
 staticfiles/
+.coverage
+coverage.xml
+htmlcov/
+.coveragerc
