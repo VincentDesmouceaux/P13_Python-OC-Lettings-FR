@@ -10,4 +10,6 @@ coverage.xml
 htmlcov/
 .coveragerc
 schema-annotated.png
-erd.pdf
+erd.dot
+erd.png
+schéma_tables.png
