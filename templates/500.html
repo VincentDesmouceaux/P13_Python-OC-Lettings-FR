@@ -1,9 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Server error{% endblock %}
+
 {% block content %}
+<!-- Contenu centré -->
 <div class="container py-5 text-center">
+    <!-- Titre d'erreur -->
     <h1 class="display-4">Oups ! 500</h1>
-    <p class="lead">Une erreur interne est survenue.<br>Nos équipes ont été prévenues.</p>
-    <a class="btn btn-primary mt-3" href="{% url 'index' %}">Retour à l’accueil</a>
+    
+    <!-- Message d'erreur -->
+    <p class="lead">
+        Une erreur interne est survenue.<br>
+        Nos équipes ont été prévenues.
+    </p>
+    
+    <!-- Bouton de retour -->
+    <a class="btn btn-primary mt-3" href="{% url 'index' %}">
+        Retour à l'accueil
+    </a>
 </div>
 {% endblock %}

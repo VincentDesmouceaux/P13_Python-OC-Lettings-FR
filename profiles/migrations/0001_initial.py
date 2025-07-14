@@ -6,10 +6,28 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
+    """
+    Migration initiale pour l'application 'profiles'.
+
+    Cette migration crée la structure de base de la table 'Profile' qui sera utilisée
+    pour stocker les informations supplémentaires des utilisateurs.
+
+    Opérations:
+    1. Création du modèle 'Profile' avec les champs:
+       - id (clé primaire auto-générée)
+       - favorite_city (ville préférée de l'utilisateur, optionnelle)
+       - user (relation OneToOne vers le modèle User d'authentification)
+
+    Relations:
+    - Une relation OneToOne est établie avec le modèle User (AUTH_USER_MODEL)
+    - Le related_name 'profile_new' est utilisé temporairement pour éviter les conflits
+      avec l'ancienne application 'profiles' (sera modifié dans une migration ultérieure)
+    """
 
     initial = True
 
     dependencies = [
+        # Dépendance vers le système d'authentification de Django
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -31,7 +49,7 @@ class Migration(migrations.Migration):
                     "user",
                     models.OneToOneField(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name="profile_new",
+                        related_name="profile_new",  # Nom temporaire pour la relation
                         to=settings.AUTH_USER_MODEL,
                     ),
                 ),

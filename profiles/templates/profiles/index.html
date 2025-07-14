@@ -2,36 +2,50 @@
 {% block title %}Profiles{% endblock %}
 
 {% block content %}
+<!-- Section d'en-tête -->
 <div class="container px-5 py-5 text-center">
     <div class="row justify-content-center">
         <div class="col-lg-8">
+            <!-- Titre principal -->
             <h1 class="page-header-ui-title mb-3 display-6">Profiles</h1>
         </div>
     </div>
 </div>
 
+<!-- Section de la liste des profils -->
 <div class="container px-5">
     <div class="row gx-5 justify-content-center">
         <div class="col-lg-10">
             <hr class="mb-0" />
+            
+            <!-- Vérification s'il y a des profils -->
             {% if profiles_list %}
+                <!-- Liste des profils -->
                 <ul class="list-group list-group-flush list-group-careers">
                     {% for profile in profiles_list %}
                         <li class="list-group-item">
-                            <a href="{% url 'profiles:detail' username=profile.user.username %}">{{ profile.user.username }}</a>
+                            <!-- Lien vers le détail du profil -->
+                            <a href="{% url 'profiles:detail' username=profile.user.username %}">
+                                {{ profile.user.username }}
+                            </a>
                         </li>
                     {% endfor %}
                 </ul>
             {% else %}
+                <!-- Message si aucun profil disponible -->
                 <p>No profiles are available.</p>
             {% endif %}
         </div>
     </div>
 </div>
 
+<!-- Section des boutons de navigation -->
 <div class="container px-5 py-5 text-center">
     <div class="justify-content-center">
+        <!-- Bouton Accueil -->
         <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'index' %}">Home</a>
+        
+        <!-- Bouton Lettings -->
         <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'lettings:index' %}">Lettings</a>
     </div>
 </div>

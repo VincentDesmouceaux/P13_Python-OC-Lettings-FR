@@ -6,6 +6,25 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
+    """
+    Migration de correction de la relation User-Profile.
+
+    Cette migration met à jour le nom de la relation (related_name) entre
+    les modèles User et Profile pour utiliser le nom standard 'profile'
+    au lieu du nom temporaire 'profile_new'.
+
+    Objectifs:
+    1. Uniformiser le nom d'accès aux profils depuis les utilisateurs
+    2. Résoudre les conflits potentiels avec d'autres applications
+    3. Préparer la suppression de l'ancienne application 'profiles'
+
+    Opération:
+    - Modification du champ 'user' dans le modèle Profile:
+      * related_name changé de 'profile_new' à 'profile'
+
+    Dépendances:
+    - Dépend de la migration de copie de données (0002_copy_data)
+    """
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -14,10 +33,11 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterField(
-            model_name="profile",
+            model_name="Profile",
             name="user",
             field=models.OneToOneField(
                 on_delete=django.db.models.deletion.CASCADE,
+                # Nom final de la relation
                 related_name="profile",
                 to=settings.AUTH_USER_MODEL,
             ),
