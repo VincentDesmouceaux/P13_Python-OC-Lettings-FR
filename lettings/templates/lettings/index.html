@@ -2,6 +2,7 @@
 {% block title %}Lettings{% endblock %}
 
 {% block content %}
+<!-- Section d'en-tête : titre principal de la page -->
 <div class="container px-5 py-5 text-center">
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -10,28 +11,38 @@
     </div>
 </div>
 
+<!-- Section principale : liste des locations -->
 <div class="container px-5">
     <div class="row gx-5 justify-content-center">
         <div class="col-lg-10">
             <hr class="mb-0" />
+            
+            <!-- Vérification de l'existence de locations -->
             {% if lettings_list %}
+                <!-- Liste des locations sous forme de liens cliquables -->
                 <ul class="list-group list-group-flush list-group-careers">
                     {% for letting in lettings_list %}
                         <li class="list-group-item">
+                            <!-- Lien vers le détail de chaque location -->
                             <a href="{% url 'lettings:detail' pk=letting.id %}">{{ letting.title }}</a>
                         </li>
                     {% endfor %}
                 </ul>
             {% else %}
+                <!-- Message affiché quand aucune location n'est disponible -->
                 <p>No lettings are available.</p>
             {% endif %}
         </div>
     </div>
 </div>
 
+<!-- Section de navigation : boutons de navigation globale -->
 <div class="container px-5 py-5 text-center">
     <div class="justify-content-center">
+        <!-- Bouton "Home" : retour à la page d'accueil principale -->
         <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'index' %}">Home</a>
+        
+        <!-- Bouton "Profiles" : navigation vers la liste des profils -->
         <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'profiles:index' %}">Profiles</a>
     </div>
 </div>

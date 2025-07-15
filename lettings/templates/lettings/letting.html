@@ -3,6 +3,7 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
+<!-- Section d'en-tête : affiche le titre de la location -->
 <div class="container px-5 py-5 text-center">
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -11,10 +12,14 @@
     </div>
 </div>
 
+<!-- Carte centrale : affiche les détails de l'adresse -->
 <div class="container px-5 py-5 text-center">
     <div class="card">
         <div class="card-body">
+            <!-- Icône décorative "home" -->
             <div class="icon-stack icon-stack-lg bg-primary text-white mb-3"><i data-feather="home"></i></div>
+            
+            <!-- Détails de l'adresse -->
             <p>{{ address.number }} {{ address.street }}</p>
             <p>{{ address.city }}, {{ address.state }} {{ address.zip_code }}</p>
             <p>{{ address.country_iso_code }}</p>
@@ -22,12 +27,18 @@
     </div>
 </div>
 
+<!-- Section de navigation : boutons de retour et de navigation -->
 <div class="container px-5 py-5 text-center">
     <div class="justify-content-center">
+        <!-- Bouton "Back" : retour à la liste des locations -->
         <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'lettings:index' %}">
             <i class="ms-2" data-feather="arrow-right"></i>Back
         </a>
+        
+        <!-- Bouton "Home" : retour à la page d'accueil principale -->
         <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'index' %}">Home</a>
+        
+        <!-- Bouton "Profiles" : navigation vers la liste des profils -->
         <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'profiles:index' %}">Profiles</a>
     </div>
 </div>
