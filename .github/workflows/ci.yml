@@ -18,32 +18,41 @@ jobs:
   # 1 · TESTS  ➜ artefacts : couverture + flake8
   ##########################################################################
   test:
+    name: 🧪 Tests & Linting
     runs-on: ubuntu-latest
     env:
-      PY_VER: ${{ secrets.PY_VER }}
+      PY_VER:            ${{ secrets.PY_VER }}
       DJANGO_SECRET_KEY: ci-dummy-secret
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PY_VER }}
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PY_VER }}
 
-      - uses: actions/cache@v4
+      - name: Cache pip
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
 
       - name: Install deps, lint & tests
         run: |
+          # → fail on any error, y compris dans un pipeline
+          set -euo pipefail
+
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
+
           # ---- Flake8 ----
           flake8 . | tee flake8-report.txt
-          # ---- Tests + couverture ----
+
+          # ---- Pytest + couverture ----
           pytest --cov=. --cov-report=xml --cov-report=html --cov-fail-under=80
 
-      # ────────────────  artefacts  ─────────────────
       - name: Upload test artefacts
         uses: actions/upload-artifact@v4
         with:
@@ -58,26 +67,33 @@ jobs:
   # 2 · BUILD & PUSH (master/main uniquement) + RELEASE SENTRY
   ##########################################################################
   docker:
+    name: 🐋 Build & Push Docker + Release Sentry
     needs: test
-    if: |
+    runs-on: ubuntu-latest
+    if: >
       needs.test.result == 'success' &&
       (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
     env:
       DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
-      IMAGE_TAG:  ${{ secrets.IMAGE_TAG }}
+      IMAGE_TAG:   ${{ secrets.IMAGE_TAG }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code (full)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - uses: docker/login-action@v3
+      - name: Docker login
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -98,18 +114,16 @@ jobs:
           cache-to:   type=gha,mode=max
           provenance: false
 
-      # ────────────────  artefact : digest  ─────────────────
-      - name: Export image digests
-        run: |
-          echo "${{ steps.build.outputs.digest }}" > image-digest.txt
-      - name: Upload image digest
+      - name: Export image digest
+        run: echo "${{ steps.build.outputs.digest }}" > image-digest.txt
+
+      - name: Upload Docker image digest
         uses: actions/upload-artifact@v4
         with:
           name: docker-image-digest
           path: image-digest.txt
           retention-days: 14
 
-      # ────────────────  release Sentry  ─────────────────
       - name: Notify Sentry release
         uses: getsentry/action-release@v1
         env:
@@ -128,13 +142,15 @@ jobs:
   # 3 · DEPLOY NORTHFLANK  (service Combined → /build)
   ##########################################################################
   deploy:
+    name: 🚀 Deploy on Northflank
     needs: docker
-    if: needs.docker.result == 'success'
     runs-on: ubuntu-latest
+    if: needs.docker.result == 'success'
     env:
       NF_TOKEN:      ${{ secrets.NORTHFLANK_TOKEN }}
       NF_PROJECT_ID: ${{ secrets.NF_PROJECT_ID }}
       NF_OBJECT_ID:  ${{ secrets.NF_OBJECT_ID }}
+
     steps:
       - name: Trigger Northflank build
         continue-on-error: true
@@ -152,7 +168,7 @@ jobs:
           if [[ "$http" =~ ^2[0-9]{2}$ ]]; then
             echo "✅ Build déclenché – suivez-le sur Northflank."
           else
-            echo "⚠️  Build NON déclenché (HTTP $http) – workflow poursuivi."
+            echo "⚠️ Build NON déclenché (HTTP $http) – workflow poursuivi."
           fi
 
       - name: Final notice

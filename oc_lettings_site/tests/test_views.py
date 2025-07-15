@@ -1,9 +1,7 @@
-
 """
 oc_lettings_site/tests/test_views.py
 ------------------------------------
 Tests d’intégration pour les vues principales de l’application Django.
-
 Ce module vérifie :
   - la page d’accueil (HomeView) renvoie bien le template `index.html`
     et le code HTTP 200.
@@ -11,7 +9,6 @@ Ce module vérifie :
     HTTP 404 lorsque DEBUG=False.
   - le handler 500 personnalisé (CrashTestView → Error500View) renvoie
     `500.html` et HTTP 500 lorsque DEBUG=False.
-
 Classes :
     MainViewsTest (TestCase)
         Méthodes de test :
@@ -19,6 +16,7 @@ Classes :
             - test_custom_404_page
             - test_custom_500_page
 """
+
 from django.test import TestCase
 from django.urls import reverse
 

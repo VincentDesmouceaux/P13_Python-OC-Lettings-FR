@@ -1,7 +1,7 @@
 """Vues des lettings – instrumentation Sentry + logging."""
+
 import logging
 from typing import Any
-
 import sentry_sdk
 from django.views.generic import ListView, DetailView
 from django.http import Http404
