@@ -1,172 +1,115 @@
-# CI/CD Pipeline pour application Django - Linting, Tests, Build et Déploiement
-#
-# Objectifs :
-# 1. Exécuter les tests et le linting sur chaque push/pull request
-# 2. Construire et pousser une image Docker multi-architectures (sur main/master)
-# 3. Déployer automatiquement sur Northflank après un build réussi
-#
-# Déclencheurs :
-# - Sur tout push vers n'importe quelle branche
-# - Sur toute pull request
-# - Déclenchement manuel via l'interface GitHub
-#
-# Variables d'environnement :
-# - PY_VER : Version Python (définie dans les secrets GitHub)
-# - DJANGO_SECRET_KEY : Clé secrète pour les tests
-# - DOCKER_REPO/IMAGE_TAG : Configuration du registre Docker
-# - SENTRY_* : Configuration pour les releases Sentry
-# - NF_* : Configuration pour le déploiement Northflank
-#
-# Workflow en 3 étapes :
-# 1. Test : Linting (flake8) + Tests unitaires (pytest) avec couverture de code
-# 2. Build : Construction et publication de l'image Docker (multi-arch)
-# 3. Deploy : Déclenchement du déploiement sur Northflank
-#
-# Artefacts générés :
-# - Rapport de couverture de code (HTML+XML)
-# - Rapport flake8
-# - Digest de l'image Docker
-
+# .github/workflows/ci.yml
 name: CI – lint, tests, build & deploy
 
-# Déclencheurs du workflow
 on:
   push:
-    branches: ['**']        # Toutes les branches
-  pull_request: {}          # Toutes les PRs
-  workflow_dispatch: {}     # Permet un déclenchement manuel
+    branches: ['**']
+  pull_request: {}
+  workflow_dispatch: {}
 
 ##############################################################################
-# Configuration globale
+# 0 · Variables globales accessibles dans tout le workflow
 ##############################################################################
 env:
-  PY_VER: ${{ secrets.PY_VER }}  # Version Python (ex: '3.12')
+  PY_VER: ${{ secrets.PY_VER }}
 
 jobs:
-  ############################################################################
-  # Étape 1 : Tests et qualité de code
-  ############################################################################
+  ##########################################################################
+  # 1 · TESTS  ➜ artefacts : couverture + flake8
+  ##########################################################################
   test:
-    name: Run Tests & Linting
-    runs-on: ubuntu-latest  # Exécution sur le dernier Ubuntu
-    
-    # Variables d'environnement spécifiques au job
+    runs-on: ubuntu-latest
     env:
-      PY_VER: ${{ secrets.PY_VER }}  # Récupère la version Python
-      DJANGO_SECRET_KEY: ci-dummy-secret  # Clé secrète pour les tests Django
-    
+      PY_VER: ${{ secrets.PY_VER }}
+      DJANGO_SECRET_KEY: ci-dummy-secret
     steps:
-      # Étape 1.1 : Checkout du code
       - uses: actions/checkout@v4
-      
-      # Étape 1.2 : Configuration de Python
+
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PY_VER }}  # Version spécifiée
-      
-      # Étape 1.3 : Cache des dépendances pour accélérer les builds
+          python-version: ${{ env.PY_VER }}
+
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-      
-      # Étape 1.4 : Installation des dépendances et exécution des tests
+
       - name: Install deps, lint & tests
         run: |
-          # Mise à jour de pip et installation des dépendances
           python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 pytest-cov
-          
-          # Linting avec flake8 (rapport enregistré dans flake8-report.txt)
+          # ---- Flake8 ----
           flake8 . | tee flake8-report.txt
-          
-          # Tests unitaires avec couverture de code
-          # - Génère des rapports XML (pour SonarQube) et HTML
-          # - Échoue si la couverture est <80%
+          # ---- Tests + couverture ----
           pytest --cov=. --cov-report=xml --cov-report=html --cov-fail-under=80
-      
-      # Étape 1.5 : Archivage des résultats des tests
+
+      # ────────────────  artefacts  ─────────────────
       - name: Upload test artefacts
         uses: actions/upload-artifact@v4
         with:
-          name: test-artifacts      # Nom du bundle d'artefacts
-          path: |                   # Fichiers à archiver
-            coverage.xml            # Rapport de couverture (format XML)
-            htmlcov                 # Rapport de couverture (format HTML)
-            flake8-report.txt       # Rapport du linter
-          retention-days: 14        # Conservation pendant 14 jours
+          name: test-artifacts
+          path: |
+            coverage.xml
+            htmlcov
+            flake8-report.txt
+          retention-days: 14
 
-  ############################################################################
-  # Étape 2 : Build et publication de l'image Docker
-  ############################################################################
+  ##########################################################################
+  # 2 · BUILD & PUSH (master/main uniquement) + RELEASE SENTRY
+  ##########################################################################
   docker:
-    name: Build & Push Docker Image
-    needs: test  # Dépend de l'étape de tests
-    
-    # Conditions d'exécution :
-    # - Seulement si les tests passent
-    # - Uniquement sur les branches main/master
+    needs: test
     if: |
       needs.test.result == 'success' &&
       (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
-    
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write  # Permission pour pousser sur Docker Hub
-    
-    # Variables spécifiques au déploiement Docker
+      packages: write
     env:
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}  # Nom du repository Docker
-      IMAGE_TAG:  ${{ secrets.IMAGE_TAG }}     # Tag de l'image (ex: 'latest')
-    
+      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
+      IMAGE_TAG:  ${{ secrets.IMAGE_TAG }}
     steps:
-      # Étape 2.1 : Checkout du code (avec historique complet)
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Récupère tout l'historique Git
-      
-      # Étape 2.2 : Configuration de l'environnement de build multi-arch
-      - uses: docker/setup-qemu-action@v3     # Support multi-architectures
-      - uses: docker/setup-buildx-action@v3   # Configuration de Buildx
-      
-      # Étape 2.3 : Authentification sur Docker Hub
+          fetch-depth: 0
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
-      # Étape 2.4 : Construction et publication de l'image
+
       - name: Build & push (amd64 + arm64)
-        id: build  # Identifiant pour récupérer les outputs
+        id: build
         uses: docker/build-push-action@v5
         with:
-          context: .  # Répertoire de build
-          platforms: linux/amd64,linux/arm64  # Support x64 et ARM
-          push: true  # Publication automatique
-          tags: |     # Tags appliqués à l'image
-            ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}  # Tag stable
-            ${{ env.DOCKER_REPO }}:${{ github.sha }}     # Tag avec commit SHA
-          build-args: |  # Arguments de build
-            GIT_SHA=${{ github.sha }}  # Passe le SHA du commit
-          cache-from: type=gha  # Utilisation du cache GitHub
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
+            ${{ env.DOCKER_REPO }}:${{ github.sha }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
           cache-to:   type=gha,mode=max
-          provenance: false     # Désactivé pour compatibilité multi-arch
-      
-      # Étape 2.5 : Archivage du digest de l'image
+          provenance: false
+
+      # ────────────────  artefact : digest  ─────────────────
       - name: Export image digests
         run: |
-          # Enregistre le digest de l'image pour référence future
           echo "${{ steps.build.outputs.digest }}" > image-digest.txt
-      
       - name: Upload image digest
         uses: actions/upload-artifact@v4
         with:
-          name: docker-image-digest  # Nom de l'artefact
-          path: image-digest.txt     # Fichier contenant le digest
+          name: docker-image-digest
+          path: image-digest.txt
           retention-days: 14
-      
-      # Étape 2.6 : Création d'une release Sentry
+
+      # ────────────────  release Sentry  ─────────────────
       - name: Notify Sentry release
         uses: getsentry/action-release@v1
         env:
@@ -175,56 +118,42 @@ jobs:
           SENTRY_PROJECT:    ${{ secrets.SENTRY_PROJECT }}
           SENTRY_URL:        ${{ secrets.SENTRY_URL }}
         with:
-          environment: production  # Environnement de la release
-          version:      ${{ github.sha }}  # Version = SHA du commit
-          projects:     "${{ secrets.SENTRY_PROJECT }}"  # Projet(s) concerné(s)
-          set_commits:  auto      # Association automatique des commits
-          ignore_missing: true    # Ignore les erreurs si projet non trouvé
+          environment: production
+          version:      ${{ github.sha }}
+          projects:     "${{ secrets.SENTRY_PROJECT }}"
+          set_commits:  auto
+          ignore_missing: true
 
-  ############################################################################
-  # Étape 3 : Déploiement sur Northflank
-  ############################################################################
+  ##########################################################################
+  # 3 · DEPLOY NORTHFLANK  (service Combined → /build)
+  ##########################################################################
   deploy:
-    name: Deploy to Northflank
-    needs: docker  # Dépend de l'étape Docker
-    
-    # Exécution seulement si le build Docker réussit
+    needs: docker
     if: needs.docker.result == 'success'
-    
     runs-on: ubuntu-latest
     env:
-      NF_TOKEN:      ${{ secrets.NORTHFLANK_TOKEN }}  # Token d'API Northflank
-      NF_PROJECT_ID: ${{ secrets.NF_PROJECT_ID }}     # ID du projet
-      NF_OBJECT_ID:  ${{ secrets.NF_OBJECT_ID }}      # ID du service
-    
+      NF_TOKEN:      ${{ secrets.NORTHFLANK_TOKEN }}
+      NF_PROJECT_ID: ${{ secrets.NF_PROJECT_ID }}
+      NF_OBJECT_ID:  ${{ secrets.NF_OBJECT_ID }}
     steps:
-      # Étape 3.1 : Déclenchement du build sur Northflank
       - name: Trigger Northflank build
-        continue-on-error: true  # Continue même en cas d'erreur
+        continue-on-error: true
         run: |
-          set -euo pipefail  # Mode strict pour la gestion d'erreurs
-          
-          # Construction de l'URL de l'API Northflank
+          set -euo pipefail
           API="https://api.northflank.com/v1/projects/${NF_PROJECT_ID}/services/${NF_OBJECT_ID}/build"
           echo "🔗  POST $API"
-          
-          # Appel à l'API Northflank
           http=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
             -X POST "$API" \
             -H "Authorization: Bearer ${NF_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{"reason":"GitHub Action auto-build"}')
-          
-          echo "↪︎ HTTP ${http}"  # Affiche le code de réponse
-          cat /tmp/resp.json || true  # Affiche la réponse (pour debugging)
-          
-          # Vérification du code HTTP
+          echo "↪︎ HTTP ${http}"
+          cat /tmp/resp.json || true
           if [[ "$http" =~ ^2[0-9]{2}$ ]]; then
             echo "✅ Build déclenché – suivez-le sur Northflank."
           else
             echo "⚠️  Build NON déclenché (HTTP $http) – workflow poursuivi."
           fi
-      
-      # Étape 3.2 : Notification finale
+
       - name: Final notice
         run: echo "🌐 Si build OK → https://p01--holiday-homes--c7br8w6v87r6.code.run"
