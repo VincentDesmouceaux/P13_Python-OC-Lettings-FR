@@ -1,7 +1,7 @@
 """
 oc_lettings_site/error_views.py – Pages d’erreur personnalisées + instrumentation logging/Sentry
 Ce module définit trois vues pour gérer les erreurs HTTP et vérifier le bon
-fonctionnement de la capture d’exceptions :
+fonctionnement de la capture d’exceptions par Sentry. :
 Classes :
   * Error404View
       • Hérite de TemplateView
