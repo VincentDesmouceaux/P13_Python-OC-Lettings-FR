@@ -56,3 +56,23 @@ rebuild: build stop run ## Reconstruit puis relance le conteneur
 .PHONY: logs
 logs: ## Affiche les logs en continu (Ctrl-C pour sortir)
 	docker logs -f $(CONTAINER)
+
+# -----------------------------------------------------------------------------# Makefile (racine)
+
+.PHONY: docs-html docs-serve docs-clean docs-linkcheck docs-doctest
+
+docs-html:
+	@$(MAKE) -C docs html
+
+docs-serve:
+	@$(MAKE) -C docs serve
+
+docs-clean:
+	@$(MAKE) -C docs clean
+
+docs-linkcheck:
+	@$(MAKE) -C docs linkcheck
+
+docs-doctest:
+	@$(MAKE) -C docs doctest
+

@@ -14,3 +14,7 @@ erd.dot
 erd.png
 schéma_tables.png
 docs/build/
+docs/_build/
+docs/**/.doctrees/
+docs/**/_autosummary/
+.DS_Store
