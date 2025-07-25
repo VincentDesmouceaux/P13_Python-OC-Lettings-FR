@@ -1,6 +1,13 @@
 Orange County Lettings – Doc technique (et un peu plus) 🌴
 ==========================================================
 
+.. figure:: _static/img/hero.png
+   :alt: Sunset, palmiers et maison OC Lettings
+   :width: 100%
+   :class: hero
+
+   Orange County Lettings – Sunset vibes 🌴
+
 
 **Orange County Lettings** est une start-up en pleine expansion sur le marché de la
 location de biens immobiliers aux États-Unis. Entre **palmiers, couchers de soleil et belles

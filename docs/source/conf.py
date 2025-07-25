@@ -38,3 +38,4 @@ html_theme_options = {
     "light_logo": "images/logo-oclettings-light.png",
     "dark_logo": "images/logo-oclettings-dark.png",
 }
+pygments_dark_style = "native"

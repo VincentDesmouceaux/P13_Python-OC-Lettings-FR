@@ -64,3 +64,10 @@ a:hover {
 article section {
   animation: fadeIn .2s ease both;
 }
+
+.hero {
+  margin: 1.2rem 0 2rem 0;
+  border-radius: 8px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .08);
+}
+
