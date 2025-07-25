@@ -154,4 +154,7 @@ Le projet utilise une pipeline **CI/CD GitHub Actions** couplée à la plateform
 
 ---
 
+### Lien vers la documentation
+
+  - https://p13-python-oc-lettings-fr-docs.readthedocs.io/fr/latest/index.html
 
