@@ -121,6 +121,4 @@ class ProfileDetailView(_SentryLoggingMixin, DetailView):
             Objet Profile associé au username.
         Lève `Profile.DoesNotExist` si aucun profil ne correspond.
         """
-        return Profile.objects.select_related("user").get(
-            user__username=self.kwargs["username"]
-        )
+        return Profile.objects.select_related("user").get(user__username=self.kwargs["username"])

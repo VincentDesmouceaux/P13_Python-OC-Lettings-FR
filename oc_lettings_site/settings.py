@@ -79,14 +79,10 @@ Configuration des paramètres de sécurité critiques:
 """
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
 # Liste des hôtes autorisés (séparés par des virgules dans les variables d'env)
-ALLOWED_HOSTS = [
-    h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()
-]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
 # Liste des origines de confiance pour CSRF
 CSRF_TRUSTED_ORIGINS = [
-    o.strip()
-    for o in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
-    if o.strip()
+    o.strip() for o in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
 ]
 # Configuration pour les déploiements derrière un proxy (ex: Northflank)
 if str2bool(os.getenv("DJANGO_BEHIND_PROXY", "false")):

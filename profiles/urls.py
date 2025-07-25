@@ -3,7 +3,7 @@ profiles/urls.py – Déclaration des URLs pour l’application Profiles
 Ce module définit les routes URL exposées par l’application Django
 "profiles" et associe chaque pattern à la vue correspondante.
 Routes disponibles :
-    """  # noqa: D100
+"""  # noqa: D100
 
 from django.urls import path
 from .views import ProfileListView, ProfileDetailView

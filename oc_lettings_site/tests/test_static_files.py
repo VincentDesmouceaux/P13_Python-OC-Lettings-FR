@@ -54,9 +54,7 @@ class StaticFilesLoadedTest(TestCase):
                     # Construire l’URL de la page
                     page = raw if raw.startswith("/") else reverse(raw)
                     resp = client.get(page)
-                    self.assertEqual(
-                        resp.status_code, 200, f"{page} ne renvoie pas 200"
-                    )
+                    self.assertEqual(resp.status_code, 200, f"{page} ne renvoie pas 200")
                     # Vérifier la référence à test.css
                     if "test.css" not in resp.content.decode():
                         print(f"⚠️ test.css non référencé dans {page}")

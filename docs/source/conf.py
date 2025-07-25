@@ -17,7 +17,10 @@ extensions = [
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", "https://docs.python.org/3/objects.inv"),
-    "django": ("https://docs.djangoproject.com/en/4.2/", "https://docs.djangoproject.com/en/4.2/objects.inv"),
+    "django": (
+        "https://docs.djangoproject.com/en/4.2/",
+        "https://docs.djangoproject.com/en/4.2/objects.inv",
+    ),
 }
 
 todo_include_todos = True

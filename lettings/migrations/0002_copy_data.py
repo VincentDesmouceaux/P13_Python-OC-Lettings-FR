@@ -2,8 +2,8 @@
 """
 Migration de copie de données legacy neutralisée
 Contexte historique:
-- À l'origine, cette migration copiait les données des anciens modèles 
-  `oc_lettings_site.Address` et `oc_lettings_site.Letting` vers les nouveaux 
+- À l'origine, cette migration copiait les données des anciens modèles
+  `oc_lettings_site.Address` et `oc_lettings_site.Letting` vers les nouveaux
   modèles `lettings.Address` et `lettings.Letting`
 - Les anciens modèles n'existent plus dans les schémas actuels
 État actuel:
