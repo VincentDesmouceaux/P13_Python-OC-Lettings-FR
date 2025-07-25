@@ -1,9 +1,11 @@
-/* Palette "sunset" */
+/* ---- Palette "sunset" ---- */
 :root {
-  --color-brand-primary: #ff7a18;    /* orange coucher de soleil */
+  --color-brand-primary: #ff7a18;
   --color-brand-content: #ff7a18;
   --color-background-primary: #fffdfa;
+  --color-background-secondary: #ffffff;
   --color-foreground-primary: #1f1f1f;
+  --color-foreground-secondary: #4a4a4a;
 
   --oc-accent: #ff7a18;
   --oc-accent-dark: #e85f00;
@@ -14,11 +16,40 @@
 html[data-theme="dark"] {
   --color-brand-primary: #ff9d4d;
   --color-brand-content: #ff9d4d;
-  --color-background-primary: #151515;
-  --color-foreground-primary: #f2f2f2;
+
+  /* couvre toutes les zones principales de Furo */
+  --color-background-primary: #151515;    /* fond global (body, page) */
+  --color-background-secondary: #1c1c1c;  /* sidebars, cartes, etc. */
+  --color-foreground-primary: #f2f2f2;    /* texte principal */
+  --color-foreground-secondary: #c7c7c7;  /* texte secondaire */
 
   --oc-bg-grad-start: #2a1f18;
   --oc-bg-grad-end: #3b261a;
+}
+
+/* Forcer explicitement les containers Furo à suivre la palette */
+html[data-theme="dark"] body,
+html[data-theme="dark"] .page,
+html[data-theme="dark"] .content,
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .toc-drawer,
+html[data-theme="dark"] .related,
+html[data-theme="dark"] .theme-toggle,
+html[data-theme="dark"] .search {
+  background-color: var(--color-background-primary) !important;
+  color: var(--color-foreground-primary) !important;
+}
+
+/* Les blocs (cartes, admonitions, etc.) */
+html[data-theme="dark"] .admonition,
+html[data-theme="dark"] .highlight,
+html[data-theme="dark"] .literal-block,
+html[data-theme="dark"] .sidebar-brand,
+html[data-theme="dark"] .sidebar-drawer,
+html[data-theme="dark"] .toc-tree,
+html[data-theme="dark"] .toctree-wrapper {
+  background-color: var(--color-background-secondary) !important;
+  color: var(--color-foreground-primary) !important;
 }
 
 /* Titres plus “warm” */
@@ -26,7 +57,7 @@ h1, h2, h3, h4, h5 {
   letter-spacing: .01em;
 }
 
-/* Petite bande colorée sous les titres de niveau 1 */
+/* Petite barre colorée sous les h1 */
 h1 {
   position: relative;
   padding-bottom: .25rem;
@@ -42,13 +73,13 @@ h1::after {
   border-radius: 999px;
 }
 
-/* Mise en valeur des blocs de code, légère ombre */
+/* Mise en valeur des blocs de code */
 .highlight {
   border-radius: 8px;
   box-shadow: 0 0 0 1px #00000005, 0 1px 3px #00000010, 0 8px 24px #00000014;
 }
 
-/* Liens avec un hover “smooth” */
+/* Liens avec un hover smooth */
 a {
   transition: color .15s ease, background .15s ease;
 }
@@ -65,9 +96,9 @@ article section {
   animation: fadeIn .2s ease both;
 }
 
+/* Hero */
 .hero {
   margin: 1.2rem 0 2rem 0;
   border-radius: 8px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, .08);
 }
-
