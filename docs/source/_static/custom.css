@@ -1,0 +1,30 @@
+/* Palette "chaleureuse" (terracotta / orange doux) */
+:root {
+  --color-brand-primary: #e76f51;
+  --color-brand-content: #e76f51;
+  --color-foreground-primary: #2d2a26;
+  --color-background-primary: #fff9f6;
+  --color-background-secondary: #fff3ec;
+  --color-sidebar-background: #fff3ec;
+}
+
+html[data-theme="dark"] {
+  --color-brand-primary: #f4a261;
+  --color-brand-content: #f4a261;
+  --color-foreground-primary: #f0eae6;
+  --color-background-primary: #201a17;
+  --color-background-secondary: #2a231f;
+  --color-sidebar-background: #2a231f;
+}
+
+/* Titres un peu plus « friendly » */
+h1, h2, h3 {
+  font-weight: 700;
+}
+
+/* Légère rondeur */
+.sidebar-drawer,
+.content,
+.sidebar-brand {
+  border-radius: 6px;
+}

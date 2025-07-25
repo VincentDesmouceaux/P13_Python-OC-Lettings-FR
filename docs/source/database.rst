@@ -1,63 +1,41 @@
-Base de données & modèles
-=========================
+Base de données (simplifiée)
+============================
 
-Structure conceptuelle
-----------------------
+Diagramme
+---------
 
 .. mermaid::
-   :caption: Modèle conceptuel simplifié
+   :caption: Modèle conceptuel
 
    classDiagram
      class Profile {
-       +id: int
-       +user: OneToOne(User)
-       +favorite_city: str
-       __str__()
+       id
+       user (OneToOne User)
+       favorite_city
      }
 
      class Address {
-       +id: int
-       +number: int
-       +street: str
-       +city: str
-       +state: str
-       +zip_code: str
-       +country_iso_code: str
-       __str__()
+       id
+       number
+       street
+       city
+       state
+       zip_code
+       country_iso_code
      }
 
      class Letting {
-       +id: int
-       +title: str
-       +address: FK(Address)
-       __str__()
+       id
+       title
+       address (FK)
      }
 
      Profile --> "1" User
      Letting --> "1" Address
 
-Tables principales
-------------------
+Tables clés
+-----------
 
-**profiles_profile**
-
-- ``id`` (PK)
-- ``user_id`` (OneToOne → ``auth_user``)
-- ``favorite_city``
-
-**lettings_address**
-
-- ``id`` (PK)
-- ``number``, ``street``, ``city``, ``state``, ``zip_code``, ``country_iso_code``
-
-**lettings_letting**
-
-- ``id`` (PK)
-- ``title``
-- ``address_id`` (FK → ``lettings_address``)
-
-Migrations
-----------
-
-- Versionnées via Django (``python manage.py makemigrations`` / ``migrate``).
-- Stratégie : **small & frequent** pour faciliter les rollbacks.
+- **profiles_profile** : ``user_id`` (OneToOne → auth_user), ``favorite_city``
+- **lettings_address** : adresse complète
+- **lettings_letting** : ``title``, ``address_id`` (FK)

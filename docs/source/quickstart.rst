@@ -1,29 +1,40 @@
-Quickstart
-==========
+Quickstart (prod-like en local)
+===============================
 
-Démarrage en 60 secondes
-------------------------
+Objectif : lancer l’app **dans un conteneur Docker** (configuration la plus proche de la prod).
 
-1. Cloner le repo, créer un venv, installer les deps.
-2. Lancer la base (SQLite par défaut) et les migrations.
-3. Démarrer le serveur de dev.
-4. Ouvrir http://127.0.0.1:8000.
+Étapes
+------
 
-Commandes utiles
-----------------
+1. **Cloner** le dépôt ::
 
-- **Lancer le serveur** ::
+     git clone <URL_REPO> && cd P13_Python-OC-Lettings-FR
 
-    python manage.py runserver
+2. **Configurer l’environnement** (copie et ajuste) ::
 
-- **Lancer les tests** ::
+     cp .env.example .env
 
-    pytest
+3. **Build + run** (en une commande) ::
 
-- **Créer un superuser** ::
+     make rebuild
 
-    python manage.py createsuperuser
+4. **Ouvrir l’app** : http://localhost:8000
 
-- **Collecter les fichiers statiques** (prod) ::
+Commandes utiles (Makefile)
+---------------------------
 
-    python manage.py collectstatic --noinput
+- **Reconstruire et relancer** ::
+
+    make rebuild
+
+- **Voir les logs** ::
+
+    make logs
+
+- **Arrêter et supprimer le conteneur** ::
+
+    make stop
+
+- **(Optionnel) Lancer les tests en local (hors CI)** ::
+
+    docker run --rm oc-lettings pytest -q

@@ -1,58 +1,34 @@
-CI / CD (GitHub Actions)
-========================
+CI / CD (GitHub Actions → Docker → Northflank)
+==============================================
 
-Objectifs
----------
+Pipeline (3 jobs)
+-----------------
 
-- Lancer automatiquement **tests**, **lint** et **build de la doc** à chaque PR.
-- Déployer automatiquement sur l’environnement cible après merge sur ``main``.
+1. **🧪 Tests & Linting**
+   - Installe les dépendances
+   - **flake8** + **pytest** (couverture ≥ 80 %)
+   - Upload des artefacts (coverage, flake8-report)
 
-Pipeline type
--------------
+2. **🐋 Build & Push Docker + Release Sentry** *(master/main uniquement)*
+   - Build multi‑arch (**linux/amd64, linux/arm64**)
+   - Push sur **Docker Hub**
+   - Création d’une **release Sentry** taggée avec le SHA
 
-1. **Install** deps
-2. **Lint** (flake8, black --check, isort --check-only)
-3. **Tests** (pytest + couverture)
-4. **Build Sphinx** (sans warnings bloquants en prod)
-5. **Déploiement** (Render/Heroku/Docker registry)
+3. **🚀 Deploy on Northflank**
+   - Appel API Northflank pour **déclencher le build & déploiement**
+   - URL de prod affichée en fin de job
 
-Exemple (pseudo YAML)
+Secrets requis (GitHub)
+-----------------------
+
+- **PY_VER**
+- **DOCKERHUB_USERNAME**, **DOCKERHUB_TOKEN**
+- **DOCKER_REPO**, **IMAGE_TAG**
+- **SENTRY_AUTH_TOKEN**, **SENTRY_ORG**, **SENTRY_PROJECT**, **SENTRY_URL**
+- **NORTHFLANK_TOKEN**, **NF_PROJECT_ID**, **NF_OBJECT_ID**
+
+Release & traçabilité
 ---------------------
 
-.. code-block:: yaml
-
-   name: CI
-
-   on:
-     pull_request:
-     push:
-       branches: [ main ]
-
-   jobs:
-     tests:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-         - uses: actions/setup-python@v5
-           with:
-             python-version: "3.12"
-         - run: pip install -r requirements.txt
-         - run: pytest --maxfail=1 --disable-warnings -q
-
-     docs:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-         - uses: actions/setup-python@v5
-           with:
-             python-version: "3.12"
-         - run: pip install -r docs/requirements.txt
-         - run: make -C docs html
-
-Stratégie de versionnement
---------------------------
-
-- Utiliser une variable ``SENTRY_RELEASE`` ou un tag Git pour versionner :
-  - artefacts CI
-  - déploiement
-  - Sentry releases
+- Le SHA Git est injecté dans l’image en **`SENTRY_RELEASE`** (ARG → ENV).
+- Sentry peut ainsi **lier erreurs & release**.

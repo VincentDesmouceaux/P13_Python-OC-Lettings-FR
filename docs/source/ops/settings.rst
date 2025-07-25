@@ -1,32 +1,34 @@
 Paramètres & Environnement
 ==========================
 
-Variables d’environnement (exemples)
-------------------------------------
+Variables clés
+--------------
 
 .. list-table::
    :header-rows: 1
-   :widths: 25 45 30
+   :widths: 30 45 25
 
    * - Nom
-     - Description
+     - Rôle
      - Exemple
    * - ``DJANGO_DEBUG``
-     - Active le mode debug Django (dev uniquement)
-     - ``True`` / ``False``
+     - Toujours ``False`` en prod
+     - ``False``
    * - ``DJANGO_SECRET_KEY``
      - Clé secrète Django
      - ``changeme``
+   * - ``DJANGO_ALLOWED_HOSTS``
+     - Hôtes autorisés
+     - ``*.code.run,localhost``
+   * - ``DJANGO_CSRF_TRUSTED_ORIGINS``
+     - Origines CSRF
+     - ``https://*.code.run``
    * - ``DATABASE_URL``
-     - URL de connexion DB (prod)
+     - Connexion DB (prod)
      - ``postgres://...``
    * - ``SENTRY_DSN``
-     - DSN Sentry
+     - Monitoring erreurs
      - ``https://...``
-   * - ``ALLOWED_HOSTS``
-     - Hôtes autorisés (prod)
-     - ``myapp.com, ...``
-
-Fichier ``.env``
-----------------
-...
+   * - ``PORT``
+     - Port d’écoute
+     - ``8000``

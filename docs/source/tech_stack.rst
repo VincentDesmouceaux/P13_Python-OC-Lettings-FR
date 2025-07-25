@@ -1,37 +1,31 @@
 Technologies & stack
 ====================
 
-Backend
--------
+Back
+----
 
-- **Python** 3.12
-- **Django** 4.2
-- **Gunicorn** (prod)
-- **WhiteNoise** pour les fichiers statiques
-- **Sentry** pour la télémétrie (logs/erreurs)
+- **Python 3.12**
+- **Django 4.2**
+- **Gunicorn** (serveur WSGI)
+- **WhiteNoise** (fichiers statiques)
+- **Sentry** (observabilité / erreurs)
 
 Base de données
 ---------------
 
-- **SQLite** en dev
-- **PostgreSQL** en prod (recommandé)
+- **SQLite** pour les tests/CI
+- **PostgreSQL** recommandé en production
 
-Qualité / Tests / CI
---------------------
+Qualité / CI
+------------
 
-- **pytest** pour les tests
-- **flake8 / black / isort** (optionnel) pour la qualité
-- **GitHub Actions** pour CI/CD (voir :doc:`ops/ci_cd`)
+- **pytest**, **pytest-cov**
+- **flake8** (PEP8), **black** (formatage auto)
+- **GitHub Actions** → **Docker Hub** → **Northflank**
 
 Documentation
 -------------
 
-- **Sphinx** 8.x
-- **Furo** comme thème
-- **sphinxcontrib-mermaid** pour les diagrammes
-
-Déploiement
------------
-
-- **Render / Heroku / Railway** (selon vos choix)
-- **Docker** (optionnel) pour build reproductible
+- **Sphinx 8.x**
+- **Furo** (thème)
+- **sphinxcontrib-mermaid** (diagrammes)
