@@ -1,9 +1,10 @@
 # docs/source/conf.py
+
 from __future__ import annotations
 from datetime import datetime
 
-project = "Orange County Lettings – Documentation"
-author = "Équipe Tech OC Lettings"
+project = "P13 Python OC Lettings"
+author = "Vincent Desmouceaux"
 current_year = datetime.now().year
 copyright = f"{current_year}, {author}"
 release = "dev"
@@ -15,8 +16,14 @@ extensions = [
 ]
 
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", "https://docs.python.org/3/objects.inv"),
-    "django": ("https://docs.djangoproject.com/en/4.2/", "https://docs.djangoproject.com/en/4.2/objects.inv"),
+    "python": (
+        "https://docs.python.org/3",
+        "https://docs.python.org/3/objects.inv",
+    ),
+    "django": (
+        "https://docs.djangoproject.com/en/4.2/",
+        "https://docs.djangoproject.com/en/4.2/objects.inv",
+    ),
 }
 
 todo_include_todos = True
@@ -27,15 +34,6 @@ exclude_patterns: list[str] = []
 
 html_theme = "furo"
 html_static_path = ["_static"]
+html_css_files = ["css/oc.css"]  # si tu l'utilises
 
-# >>> CSS custom "sunset & palm trees" :)
-html_css_files = [
-    "css/oc.css",
-]
-
-# Furo: quelques options (facultatif)
-html_theme_options = {
-    "light_logo": "images/logo-oclettings-light.png",
-    "dark_logo": "images/logo-oclettings-dark.png",
-}
-pygments_dark_style = "native"
+nitpicky = False
