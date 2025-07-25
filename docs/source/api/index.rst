@@ -4,8 +4,8 @@ Interfaces (API / URLs)
 Vue d’ensemble
 --------------
 
-L’application expose des routes Django « classiques » (HTML).  
-Les URLs suivantes sont fournies à titre d’exemple. Adaptez-les à votre projet si besoin.
+L’application expose **des routes HTML classiques** (non REST).  
+Si vous exposez une API REST par la suite, documentez-la ici.
 
 Résumé
 ------
@@ -31,23 +31,6 @@ Schéma d’URL (exemple)
 
    /
    ├── lettings/
-   │   ├── <id>/
+   │   └── <id>/
    └── profiles/
-       ├── <username>/
-
-Formats de réponse
-------------------
-
-L’application rend principalement des **templates HTML**.  
-Si vous exposez une API JSON (Django REST Framework, par ex.), documentez :
-
-- **méthodes HTTP supportées** (GET/POST/PUT/PATCH/DELETE)
-- **schémas de payloads** (entrée/sortie)
-- **codes de réponse** (200, 400, 404, 500…)
-- **authentification** (session, token, JWT)
-
-Versionnement
--------------
-
-- Prévoir un préfixe de version pour toute API REST publique : ``/api/v1/...``.
-- Déprécier proprement (headers, changelog, dates d’EOL).
+       └── <username>/

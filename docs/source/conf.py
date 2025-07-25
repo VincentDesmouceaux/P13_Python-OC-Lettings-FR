@@ -1,10 +1,9 @@
+# docs/source/conf.py
 from __future__ import annotations
-
 from datetime import datetime
-from pathlib import Path
 
-project = "P13 Python OC Lettings"
-author = "Vincent Desmouceaux"
+project = "Orange County Lettings – Documentation"
+author = "Équipe Tech OC Lettings"
 current_year = datetime.now().year
 copyright = f"{current_year}, {author}"
 release = "dev"
@@ -16,29 +15,26 @@ extensions = [
 ]
 
 intersphinx_mapping = {
-    "python": (
-        "https://docs.python.org/3",
-        "https://docs.python.org/3/objects.inv",
-    ),
-    "django": (
-        "https://docs.djangoproject.com/en/4.2/",
-        "https://docs.djangoproject.com/en/4.2/objects.inv",
-    ),
+    "python": ("https://docs.python.org/3", "https://docs.python.org/3/objects.inv"),
+    "django": ("https://docs.djangoproject.com/en/4.2/", "https://docs.djangoproject.com/en/4.2/objects.inv"),
 }
 
 todo_include_todos = True
-language = "fr"
 
+language = "fr"
 templates_path = ["_templates"]
 exclude_patterns: list[str] = []
 
 html_theme = "furo"
 html_static_path = ["_static"]
-html_css_files = ["custom.css"]  # <<—— ajoute notre palette « chaleureuse »
 
-nitpicky = False
+# >>> CSS custom "sunset & palm trees" :)
+html_css_files = [
+    "css/oc.css",
+]
 
-# Create _static/custom.css if it doesn't exist (safe no-op on RTD)
-_static = Path(__file__).parent / "_static"
-_static.mkdir(exist_ok=True)
-(_static / "custom.css").touch(exist_ok=True)
+# Furo: quelques options (facultatif)
+html_theme_options = {
+    "light_logo": "images/logo-oclettings-light.png",
+    "dark_logo": "images/logo-oclettings-dark.png",
+}

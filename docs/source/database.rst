@@ -1,41 +1,51 @@
-Base de données (simplifiée)
-============================
+Base de données & modèles
+=========================
 
-Diagramme
----------
+Architecture modulaire
+----------------------
+
+Nous avons séparé **l’ancienne base monolithique** en **2 apps dédiées** :
+
+- **lettings** : ``Address``, ``Letting``
+- **profiles** : ``Profile``
+
+Le tout orchestré par l’app racine **oc_lettings_site** (settings, urls, etc.).
+
+Modèle conceptuel (simplifié)
+-----------------------------
 
 .. mermaid::
-   :caption: Modèle conceptuel
+   :caption: Modèle conceptuel simplifié
 
    classDiagram
      class Profile {
-       id
-       user (OneToOne User)
-       favorite_city
+       +id: int
+       +user: OneToOne(User)
+       +favorite_city: str
      }
 
      class Address {
-       id
-       number
-       street
-       city
-       state
-       zip_code
-       country_iso_code
+       +id: int
+       +number: int
+       +street: str
+       +city: str
+       +state: str
+       +zip_code: str
+       +country_iso_code: str
      }
 
      class Letting {
-       id
-       title
-       address (FK)
+       +id: int
+       +title: str
+       +address: FK(Address)
      }
 
      Profile --> "1" User
      Letting --> "1" Address
 
-Tables clés
------------
+Migrations – stratégie
+----------------------
 
-- **profiles_profile** : ``user_id`` (OneToOne → auth_user), ``favorite_city``
-- **lettings_address** : adresse complète
-- **lettings_letting** : ``title``, ``address_id`` (FK)
+- **Créer les nouvelles apps** (``lettings``, ``profiles``) + **migrations de données**
+- **Supprimer les anciennes tables** via migrations Django (pas de SQL brut)
+- **Ne rien casser côté admin / URLs / templates** (refacto pure)

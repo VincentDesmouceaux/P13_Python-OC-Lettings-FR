@@ -1,6 +1,4 @@
 # .readthedocs.yaml
-# Docs : https://docs.readthedocs.io/en/stable/config-file/v2.html
-
 version: 2
 
 build:
@@ -10,7 +8,7 @@ build:
 
 sphinx:
   configuration: docs/source/conf.py
-  fail_on_warning: false   # passe à true quand c'est propre
+  fail_on_warning: false
 
 python:
   install:

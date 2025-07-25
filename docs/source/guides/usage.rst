@@ -1,22 +1,27 @@
 Guide d’utilisation
 ===================
 
-Cas d’utilisation
------------------
+Cas d’utilisation typiques
+--------------------------
 
-- **/lettings/** : liste des locations
-- **/lettings/<id>/** : détail d’une location
-- **/profiles/<username>/** : profil utilisateur
+1. **Lister les locations**  
+   Accédez à :code:`/lettings/`.
 
-Erreurs
--------
+2. **Consulter le détail d’une location**  
+   Accédez à :code:`/lettings/<id>/`.
 
-- Pages **404/500** custom
-- Erreurs remontées à **Sentry**
+3. **Consulter un profil**  
+   Accédez à :code:`/profiles/<username>/`.
 
-FAQ
----
+Gestion des erreurs
+-------------------
 
-- Textes des templates → ``templates/``
-- Paramètres d’environnement → :doc:`ops/settings`
-- Ajouter un module → créer une app Django + l’ajouter à ``INSTALLED_APPS``
+- Pages **404/500** personnalisées.
+- Les erreurs sont **envoyées à Sentry** en production.
+
+FAQ rapide
+----------
+
+- **Modifier les textes ?** → dossier :code:`templates/`
+- **Changer la base ?** → :doc:`Paramètres & Environnement <../ops/settings>`
+- **Ajouter un module ?** → créer une app Django et l’ajouter à ``INSTALLED_APPS``.

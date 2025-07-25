@@ -1,40 +1,44 @@
-Quickstart (prod-like en local)
-===============================
+Quickstart – 5 minutes pour tout lancer 🌅
+==========================================
 
-Objectif : lancer l’app **dans un conteneur Docker** (configuration la plus proche de la prod).
 
-Étapes
-------
-
-1. **Cloner** le dépôt ::
-
-     git clone <URL_REPO> && cd P13_Python-OC-Lettings-FR
-
-2. **Configurer l’environnement** (copie et ajuste) ::
-
-     cp .env.example .env
-
-3. **Build + run** (en une commande) ::
-
-     make rebuild
-
-4. **Ouvrir l’app** : http://localhost:8000
+Local = **Docker en mode prod-like**. Pas d’environnement “dev” séparé :  
+on **reconstruit & (re)lance** le conteneur avec les variables d’env de prod.
 
 Commandes utiles (Makefile)
 ---------------------------
 
-- **Reconstruire et relancer** ::
+.. code-block:: bash
 
-    make rebuild
+   # reconstruire et relancer (prod-like local)
+   make rebuild
 
-- **Voir les logs** ::
+   # suivre les logs
+   make logs
 
-    make logs
+   # arrêter et supprimer le conteneur
+   make stop
 
-- **Arrêter et supprimer le conteneur** ::
+   # construire seulement
+   make build
 
-    make stop
+   # lancer seulement (si déjà buildée)
+   make run
 
-- **(Optionnel) Lancer les tests en local (hors CI)** ::
+Voir le détail : :doc:`ops/makefile`.
 
-    docker run --rm oc-lettings pytest -q
+Afficher la doc localement
+--------------------------
+
+.. code-block:: bash
+
+   pip install -r docs/requirements.txt
+   make -C docs html
+   open docs/build/html/index.html  # macOS (Linux: xdg-open)
+
+Ce que vous obtenez après ce Quickstart
+---------------------------------------
+
+- Le site tourne en **Gunicorn + WhiteNoise** (comme en prod).
+- Vous pouvez **naviguer**, **tester l’admin**, **vérifier les logs**, **simuler des erreurs** (Sentry).
+- Vous pouvez **modifier n’importe quel fichier**, `make rebuild` et **revalider la prod locale**.

@@ -1,0 +1,66 @@
+/* Palette "sunset" */
+:root {
+  --color-brand-primary: #ff7a18;    /* orange coucher de soleil */
+  --color-brand-content: #ff7a18;
+  --color-background-primary: #fffdfa;
+  --color-foreground-primary: #1f1f1f;
+
+  --oc-accent: #ff7a18;
+  --oc-accent-dark: #e85f00;
+  --oc-bg-grad-start: #fff3e0;
+  --oc-bg-grad-end: #ffe9d2;
+}
+
+html[data-theme="dark"] {
+  --color-brand-primary: #ff9d4d;
+  --color-brand-content: #ff9d4d;
+  --color-background-primary: #151515;
+  --color-foreground-primary: #f2f2f2;
+
+  --oc-bg-grad-start: #2a1f18;
+  --oc-bg-grad-end: #3b261a;
+}
+
+/* Titres plus “warm” */
+h1, h2, h3, h4, h5 {
+  letter-spacing: .01em;
+}
+
+/* Petite bande colorée sous les titres de niveau 1 */
+h1 {
+  position: relative;
+  padding-bottom: .25rem;
+}
+h1::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -.15rem;
+  width: 3.5rem;
+  height: .25rem;
+  background: var(--oc-accent);
+  border-radius: 999px;
+}
+
+/* Mise en valeur des blocs de code, légère ombre */
+.highlight {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #00000005, 0 1px 3px #00000010, 0 8px 24px #00000014;
+}
+
+/* Liens avec un hover “smooth” */
+a {
+  transition: color .15s ease, background .15s ease;
+}
+a:hover {
+  color: var(--oc-accent-dark);
+}
+
+/* Petites animations d’apparition */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+article section {
+  animation: fadeIn .2s ease both;
+}

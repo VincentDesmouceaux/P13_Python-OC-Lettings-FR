@@ -1,24 +1,29 @@
-Introduction
-============
+Introduction – Contexte & Mission
+=================================
 
-Objectif
---------
+Orange County Lettings est en phase d’**hyper‑croissance**.  
+Le produit fonctionne, mais la **codebase a besoin d’un grand ménage** : modularité,
+qualité, déploiement, supervision. C’est là que vous intervenez.
 
-**P13 Python OC Lettings** est une application Django servant d’exemple pour :
+Le pitch de Dominique (CTO)
+---------------------------
 
-- structurer un projet web Django modulaire (applications ``oc_lettings_site``, ``lettings``, ``profiles``) ;
-- mettre en place une chaîne CI/CD (tests, qualité, déploiement) ;
-- déployer sur un PaaS (ex. Render/Heroku) et instrumenter la supervision (Sentry, logs).
+> *« Bienvenue ! Tu as tout installé ? Parfait.  
+> Maintenant, j’attends de toi :*  
+> 
+> - *une architecture Django modulaire (apps ``lettings`` & ``profiles``),*  
+> - *du linting propre (sans changer la config),*  
+> - *des tests > 80 % de couverture,*  
+> - *un pipeline CI/CD (Docker → Northflank),*  
+> - *du monitoring via Sentry,*  
+> - *et une doc technique (Sphinx + Read the Docs) pour que la prochaine recrue se sente aussi bien que toi. »*
 
-Public cible
-------------
+À la fin, tu devras **modifier le titre de la home**, **redéployer**, et **récupérer l’image Docker**
+depuis Docker Hub : preuve que la chaîne est solide de bout en bout.
 
-- Développeurs Python/Django
-- Équipe DevOps / Ops
-- Correcteurs/mentors OpenClassrooms
+Objectifs de cette doc
+----------------------
 
-Portée de cette documentation
------------------------------
-
-Cette documentation **n’extrait pas automatiquement** les docstrings du code.
-Tout est **écrit et maintenu manuellement** pour rester clair, concis et orienté « produit/ops ».
+- Donner **les commandes essentielles** (pas de roman-fleuve).
+- **Montrer le “pourquoi”** en plus du “comment”.
+- Offrir un **parcours Prod-first** (le dev local = conteneur *prod-like*).

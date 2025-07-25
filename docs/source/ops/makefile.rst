@@ -1,8 +1,7 @@
 Makefile (Docker & Docs)
 ========================
 
-Commandes prêtes à l’emploi pour lancer l’application en conteneur et
-générer la documentation.
+Commandes prêtes à l’emploi pour **lancer la prod en local via Docker**, et **générer la doc**.
 
 .. code-block:: makefile
 

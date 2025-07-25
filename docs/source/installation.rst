@@ -1,48 +1,91 @@
-Installation
-============
+Installation (Docker-first)
+===========================
+
+Objectif
+--------
+
+Démarrer **tout en conteneur**, sans installer Python ni les dépendances en local.
+Le développement « local » se fait en lançant l’image Docker et en pilotant
+l’application via les commandes du ``Makefile``.
 
 Prérequis
 ---------
 
-- Python 3.12+
-- pip / venv
-- (Optionnel) PostgreSQL 14+
-- (Optionnel) Node.js si vous avez des outils front (non requis ici)
+- Docker 24+ (Desktop ou Engine)
+- GNU Make
+- (Optionnel) ``envsubst`` si tu veux templater ton ``.env``
 
-Étapes
-------
+Étapes rapides
+--------------
 
 1. **Cloner le dépôt** ::
 
       git clone <URL_REPO>
       cd P13_Python-OC-Lettings-FR
 
-2. **Créer et activer l’environnement virtuel** ::
+2. **Préparer l’environnement**  
+   Copie ``.env.example`` vers ``.env`` et ajuste les valeurs (voir :doc:`../ops/settings`).
 
-      python -m venv venv
-      source venv/bin/activate  # Windows: venv\Scripts\activate
+3. **(One-liner) Build + run** ::
 
-3. **Installer les dépendances** ::
+      make rebuild
 
-      pip install -r requirements.txt
+   Cela effectue :
+   - ``docker build`` de l’image ;
+   - arrêt/suppression du conteneur s’il existe ;
+   - relance du conteneur sur ``http://localhost:8000``.
 
-4. **Configurer les variables d’environnement**  
-   Copiez ``.env.example`` vers ``.env`` et adaptez les valeurs (voir :doc:`ops/settings`).
+4. **Consulter les logs** (stream) ::
 
-5. **Initialiser la base et lancer le serveur** ::
+      make logs
 
-      python manage.py migrate
-      python manage.py runserver
+5. **Arrêter / supprimer le conteneur** ::
 
-6. **(Optionnel) Lancer les tests** ::
+      make stop
 
-      pytest -q
+Commandes utiles dans le conteneur
+----------------------------------
 
-Installation de la documentation
---------------------------------
+- **Appliquer les migrations** ::
+
+    docker exec -it oc-lettings python manage.py migrate
+
+- **Lancer les tests** ::
+
+    docker exec -it oc-lettings pytest -q
+
+- **Collecter les fichiers statiques (prod)** ::
+
+    docker exec -it oc-lettings python manage.py collectstatic --noinput
+
+- **Ouvrir un shell Django** ::
+
+    docker exec -it oc-lettings python manage.py shell
+
+Cycle de dev le plus courant
+----------------------------
+
+1. Modifie le code.
+2. **Reconstruis et relance** ::
+
+      make rebuild
+
+3. Regarde les **logs** ::
+
+      make logs
+
+4. Accède à l’app : ``http://localhost:8000``.
+
+Documentation (Sphinx)
+----------------------
+
+La doc est générée **depuis ta machine hôte** (plus simple et rapide) :
 
 ::
 
    pip install -r docs/requirements.txt
    make -C docs html
-   open docs/build/html/index.html  # macOS (Linux: xdg-open)
+   open docs/build/html/index.html  # macOS (Linux : xdg-open)
+
+Astuce : exécute ``make help`` à la racine du projet pour lister toutes les cibles
+disponibles (Docker + Docs).

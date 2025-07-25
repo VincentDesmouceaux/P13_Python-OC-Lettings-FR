@@ -1,24 +1,41 @@
 Monitoring & Logs
 =================
 
+Objectifs
+---------
+
+- **Voir** les erreurs le plus tôt possible
+- **Comprendre** quel déploiement a introduit quoi
+- **Tracer** pour réagir et corriger
+
 Sentry
 ------
 
-- Activez ``SENTRY_DSN`` pour envoyer les erreurs
-- La release est taggée avec ``SENTRY_RELEASE`` (SHA Git)
-- Capture :
-  - Exceptions non gérées
-  - Logs ``logging.error``
+- ``SENTRY_DSN`` doit être présent en prod
+- **Release = SHA** du build (`SENTRY_RELEASE`)
+- Logs + erreurs non gérées (500) automatiquement remontés
 
-Logs
-----
+Logging applicatif
+------------------
 
-- **INFO** en prod
-- **DEBUG** jamais activé en prod
-- Exploitables dans la console Northflank ou via un agrégateur externe
+- Niveau **INFO** en prod, **DEBUG** local si besoin
+- Standardiser le format (JSON si centralisé)
 
-Alerting
---------
+Métriques à surveiller
+----------------------
 
-- Seuils Sentry (taux d’erreurs)
-- Healthchecks (à ajouter si besoin)
+- Temps de réponse (p50/p95)
+- Taux d’erreurs (4xx/5xx)
+- Disponibilité (healthcheck)
+
+Alerte
+------
+
+- Seuils Sentry (ex. erreurs/minute)
+- Notifications Slack / e‑mail
+
+Plan de reprise
+---------------
+
+- Sauvegardes DB
+- Rollback par tag Docker + migrations inverses
