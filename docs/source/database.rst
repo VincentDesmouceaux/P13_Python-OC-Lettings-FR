@@ -11,41 +11,24 @@ Nous avons séparé **l’ancienne base monolithique** en **2 apps dédiées** :
 
 Le tout orchestré par l’app racine **oc_lettings_site** (settings, urls, etc.).
 
-Modèle conceptuel (simplifié)
------------------------------
+Schéma des tables (PDF)
+-----------------------
 
-.. mermaid::
-   :caption: Modèle conceptuel simplifié
+.. figure:: _static/img/schema_tables.pdf
+   :alt: Schéma des tables OC Lettings (PDF)
+   :width: 100%
+   :align: center
 
-   classDiagram
-     class Profile {
-       +id: int
-       +user: OneToOne(User)
-       +favorite_city: str
-     }
+   Structure des tables (ouvrir/zoom selon votre navigateur).
 
-     class Address {
-       +id: int
-       +number: int
-       +street: str
-       +city: str
-       +state: str
-       +zip_code: str
-       +country_iso_code: str
-     }
+.. only:: html
 
-     class Letting {
-       +id: int
-       +title: str
-       +address: FK(Address)
-     }
+   .. raw:: html
 
-     Profile --> "1" User
-     Letting --> "1" Address
-
-Migrations – stratégie
-----------------------
-
-- **Créer les nouvelles apps** (``lettings``, ``profiles``) + **migrations de données**
-- **Supprimer les anciennes tables** via migrations Django (pas de SQL brut)
-- **Ne rien casser côté admin / URLs / templates** (refacto pure)
+      <div style="margin:1rem 0;border:1px solid #eee;border-radius:8px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04);">
+        <object data="_static/img/schema_tables.pdf" type="application/pdf" width="100%" height="680">
+          <p>Votre navigateur ne peut pas afficher le PDF.
+             <a href="_static/img/schema_tables.pdf" target="_blank" rel="noopener">Télécharger le schéma</a>.
+          </p>
+        </object>
+      </div>

@@ -1,5 +1,5 @@
-Orange County Lettings – Doc technique (et un peu plus) 🌴
-==========================================================
+Orange County Lettings – Doc technique 🌴
+========================================
 
 .. figure:: _static/img/hero.png
    :alt: Sunset, palmiers et maison OC Lettings

@@ -1,5 +1,5 @@
-Installation (Docker-first)
-===========================
+Installation
+============
 
 Objectif
 --------
@@ -75,6 +75,19 @@ Cycle de dev le plus courant
       make logs
 
 4. Accède à l’app : ``http://localhost:8000``.
+
+Alternative : démarrer sans Docker
+----------------------------------
+
+.. code-block:: bash
+
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+
+   pip install -r requirements.txt
+   python manage.py migrate
+   python manage.py runserver
+
 
 Documentation (Sphinx)
 ----------------------
