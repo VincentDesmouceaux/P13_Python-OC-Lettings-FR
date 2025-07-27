@@ -63,6 +63,8 @@ Dans le reste de la documentation sur le développement local, il est supposé q
 - Lancer une requête sur la table des profils, `select user_id, favorite_city from
   Python-OC-Lettings-FR_profile where favorite_city like 'B%';`
 - `.quit` pour quitter
+- python manage.py dbshell (ouvrir un shell interactif sqlite)
+- Commande pour récupérer les migrations : SELECT * FROM django_migrations
 
 #### Panel d'administration
 
