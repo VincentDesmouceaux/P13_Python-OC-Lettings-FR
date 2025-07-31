@@ -5,7 +5,9 @@ project = "P13 Python OC Lettings"
 author = "Vincent Desmouceaux"
 current_year = datetime.now().year
 copyright = f"{current_year}, {author}"
-release = "dev"
+version = ""
+release = ""
+html_title = "P13 Python OC Lettings — Documentation"
 
 extensions = [
     "sphinx.ext.intersphinx",
