@@ -10,10 +10,16 @@ Gestion des handlers d’erreur :
   - handler500 : Error500View (internal server error)
 """
 
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from .views import HomeView
 from oc_lettings_site.error_views import Error404View, Error500View, CrashTestView
+
+
+def boom(_request):
+    return 1 / 0
+
 
 urlpatterns = [
     # Page d’accueil
@@ -29,3 +35,8 @@ urlpatterns = [
 # Handlers d’erreur personnalisés
 handler404 = Error404View.as_view()
 handler500 = Error500View.as_view()
+
+if settings.PROD:
+    urlpatterns += [
+        path("debug/boom", boom, name="debug_boom"),
+    ]
