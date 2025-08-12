@@ -8,7 +8,6 @@ staticfiles/
 .coverage
 coverage.xml
 htmlcov/
-.coveragerc
 schema-annotated.png
 erd.dot
 erd.png

@@ -1,0 +1,24 @@
+# .coveragerc — propre, sans caractères Unicode “bizarres”
+[run]
+branch = True
+# Limiter la mesure au code applicatif
+source =
+    oc_lettings_site
+    lettings
+    profiles
+
+# Fichiers/dossiers à ignorer dans la couverture
+omit =
+    **/tests/**
+    **/test_*.py
+    **/conftest.py
+    **/migrations/**
+    manage.py
+    oc_lettings_site/asgi.py
+    oc_lettings_site/wsgi.py
+
+[report]
+show_missing = True
+exclude_lines =
+    pragma: no cover
+    if __name__ == "__main__":
