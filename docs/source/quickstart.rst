@@ -1,12 +1,8 @@
 Quickstart – 5 minutes pour tout lancer 🌅
 ==========================================
 
-
-Local = **Docker en mode prod-like**. Pas d’environnement “dev” séparé :  
-on **reconstruit & (re)lance** le conteneur avec les variables d’env de prod.
-
-Commandes utiles (Makefile)
----------------------------
+Local (prod-like Docker)
+------------------------
 
 .. code-block:: bash
 
@@ -25,20 +21,23 @@ Commandes utiles (Makefile)
    # lancer seulement (si déjà buildée)
    make run
 
-Voir le détail : :doc:`ops/makefile`.
+Depuis Docker Hub (image distante)
+----------------------------------
 
-Afficher la doc localement
---------------------------
+Définissez `DOCKER_REPO` (et éventuellement `IMAGE_TAG`) dans ``.env`` ou en variable d’environnement :
 
 .. code-block:: bash
 
-   pip install -r docs/requirements.txt
-   make -C docs html
-   open docs/build/html/index.html  # macOS (Linux: xdg-open)
+   # .env (extrait)
+   DOCKER_REPO=vincentdesmouceaux/oc-lettings-site
+   IMAGE_TAG=latest  # optionnel (fallback: latest)
 
-Ce que vous obtenez après ce Quickstart
----------------------------------------
+.. code-block:: bash
 
-- Le site tourne en **Gunicorn + WhiteNoise** (comme en prod).
-- Vous pouvez **naviguer**, **tester l’admin**, **vérifier les logs**, **simuler des erreurs** (Sentry).
-- Vous pouvez **modifier n’importe quel fichier**, `make rebuild` et **revalider la prod locale**.
+   # récupérer puis lancer l’image distante
+   make up-remote
+
+   # ou forcer un pull à chaque run (Docker récent)
+   make run-remote-latest
+
+Voir le détail : :doc:`ops/makefile`.

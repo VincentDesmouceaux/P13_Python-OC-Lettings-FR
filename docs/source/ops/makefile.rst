@@ -1,43 +1,91 @@
 Makefile (Docker & Docs)
 ========================
 
-Commandes prêtes à l’emploi pour **lancer la prod en local via Docker**, et **générer la doc**.
+But
+---
 
-.. code-block:: makefile
+Fournir des **raccourcis sûrs** pour builder/lancer en local, et **tirer** puis lancer l’image du **Docker Hub** — **sans secrets en dur**.
 
-   # --- Docker -------------------------------------------------
-   IMAGE      := oc-lettings
-   CONTAINER  := oc-lettings
-   PORT       := 8000
+Chargement du ``.env``
+----------------------
 
-   .PHONY: help build run stop rebuild logs
+- Le Makefile lit les clés (ex: ``PORT``, ``DOCKER_REPO``, ``IMAGE_TAG``) depuis ``.env`` **si présent**.
+- Avant un ``docker run``, il crée un ``.env.sanitized`` (ne garde que ``KEY=VALUE`` et commentaires) pour éviter que des lignes décoratives ne cassent l’option ``--env-file``.
 
-   help:
-   	@grep -E '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) \
-   	| awk 'BEGIN {FS = ":.*?##"}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+Variables utiles
+----------------
 
-   build: ## Build de l’image Docker
-   	docker build -t $(IMAGE) .
+- ``PORT`` : port hôte (défaut : ``8000``).
+- ``DOCKER_REPO`` : image distante (ex. ``vincentdesmouceaux/oc-lettings-site``).
+- ``IMAGE_TAG`` : tag distant (ex. ``latest``). *Optionnel* (fallback : ``latest``).
+- ``IMAGE`` / ``CONTAINER`` : noms locaux (défaut : ``oc-lettings``).
 
-   run: ## Lance le conteneur
-   	docker run -d --name $(CONTAINER) -p $(PORT):8000 $(IMAGE)
+Cibles disponibles
+------------------
 
-   stop: ## Stoppe & supprime le conteneur
-   	-@docker rm -f $(CONTAINER) 2>/dev/null || true
+- ``make build``  
+  Construit l’image **locale** ``oc-lettings``.  
+  Si ``DOCKER_REPO`` est défini, tague aussi ``$DOCKER_REPO:$IMAGE_TAG`` (ou ``latest``).
 
-   rebuild: build stop run ## Rebuild complet
+- ``make run``  
+  Lance le conteneur **local** en détaché ; port ``$PORT:8000`` ; charge ``.env.sanitized`` si présent.
 
-   logs: ## Affiche les logs
-   	docker logs -f $(CONTAINER)
+- ``make stop``  
+  Arrête et supprime le conteneur s’il existe (idempotent).
 
-   # --- Docs ---------------------------------------------------
-   .PHONY: docs-html docs-serve docs-clean
+- ``make rebuild``  
+  **build → stop → run** (équiv. à “rebuild and restart”).
 
-   docs-html:
-   	@$(MAKE) -C docs html
+- ``make logs``  
+  Affiche les logs en continu (``Ctrl-C`` pour sortir).
 
-   docs-serve:
-   	@$(MAKE) -C docs serve
+- ``make pull``  
+  **Pull l’image distante** (nécessite ``DOCKER_REPO``).
 
-   docs-clean:
-   	@$(MAKE) -C docs clean
+- ``make run-remote``  
+  Lance **depuis l’image distante** (utilise ``.env.sanitized`` si présent).
+
+- ``make up-remote``  
+  **stop → pull → run-remote** (pull + run en un coup).
+
+- ``make run-remote-latest``  
+  Force un pull à chaque exécution (``docker run --pull=always``).
+
+Exemples
+--------
+
+**Local (prod-like)** :
+
+.. code-block:: bash
+
+   make rebuild
+   make logs
+   make stop
+
+**Depuis Docker Hub** :
+
+.. code-block:: bash
+
+   # .env
+   DOCKER_REPO=vincentdesmouceaux/oc-lettings-site
+   IMAGE_TAG=latest   # optionnel
+
+   make up-remote
+   # ou
+   make run-remote-latest
+
+Docs (Sphinx)
+-------------
+
+.. code-block:: bash
+
+   make -C docs html        # build HTML
+   make -C docs serve       # serveur de prévisualisation (si configuré)
+   make -C docs clean       # nettoyer build
+   make -C docs linkcheck   # vérifier les liens
+   make -C docs doctest     # exécuter doctests
+
+.. note::
+
+   Ne commitez jamais votre ``.env`` réel.
+   Versionnez **.env.example** et remplissez les valeurs côté CI/CD (secrets GitHub) ou localement.

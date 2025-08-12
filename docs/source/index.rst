@@ -33,9 +33,8 @@ aura besoin la prochaine recrue pour être efficace… dès le premier café.
    quickstart
    tech_stack
    database
-   installation_docker
-   quickstart_docker
    installation
+   quickstart_docker
 
 .. toctree::
    :maxdepth: 2

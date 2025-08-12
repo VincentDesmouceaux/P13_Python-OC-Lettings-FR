@@ -5,76 +5,51 @@ Objectif
 --------
 
 Démarrer **tout en conteneur**, sans installer Python ni les dépendances en local.
-Le développement « local » se fait en lançant l’image Docker et en pilotant
-l’application via les commandes du ``Makefile``.
 
 Prérequis
 ---------
 
 - Docker 24+ (Desktop ou Engine)
 - GNU Make
-- (Optionnel) ``envsubst`` si tu veux templater ton ``.env``
+- (Optionnel) un fichier ``.env`` pour tes variables
 
 Étapes rapides
 --------------
 
-1. **Cloner le dépôt** ::
+1) **Cloner le dépôt** ::
 
-      git clone <URL_REPO>
-      cd P13_Python-OC-Lettings-FR
+   git clone <URL_REPO>
+   cd P13_Python-OC-Lettings-FR
 
-2. **Préparer l’environnement**  
-   Copie ``.env.example`` vers ``.env`` et ajuste les valeurs (voir :doc:`../ops/settings`).
+2) **Préparer l’environnement** ::
 
-3. **(One-liner) Build + run** ::
+   cp .env.example .env
+   # personnalise si besoin : PORT, DOCKER_REPO, IMAGE_TAG, SENTRY_DSN, etc.
 
-      make rebuild
+3) **Build + run (local)** ::
 
-   Cela effectue :
-   - ``docker build`` de l’image ;
-   - arrêt/suppression du conteneur s’il existe ;
-   - relance du conteneur sur ``http://localhost:8000``.
+   make rebuild
 
-4. **Consulter les logs** (stream) ::
+4) **Vérifier** : http://localhost:8000
 
-      make logs
+Commandes utiles (dans le conteneur)
+------------------------------------
 
-5. **Arrêter / supprimer le conteneur** ::
-
-      make stop
-
-Commandes utiles dans le conteneur
-----------------------------------
-
-- **Appliquer les migrations** ::
+- **Migrations** ::
 
     docker exec -it oc-lettings python manage.py migrate
 
-- **Lancer les tests** ::
+- **Tests** ::
 
     docker exec -it oc-lettings pytest -q
 
-- **Collecter les fichiers statiques (prod)** ::
+- **Collecte des statiques (prod)** ::
 
     docker exec -it oc-lettings python manage.py collectstatic --noinput
 
-- **Ouvrir un shell Django** ::
+- **Shell Django** ::
 
     docker exec -it oc-lettings python manage.py shell
-
-Cycle de dev le plus courant
-----------------------------
-
-1. Modifie le code.
-2. **Reconstruis et relance** ::
-
-      make rebuild
-
-3. Regarde les **logs** ::
-
-      make logs
-
-4. Accède à l’app : ``http://localhost:8000``.
 
 Alternative : démarrer sans Docker
 ----------------------------------
@@ -82,23 +57,7 @@ Alternative : démarrer sans Docker
 .. code-block:: bash
 
    python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-
+   source venv/bin/activate  # Windows : venv\Scripts\activate
    pip install -r requirements.txt
    python manage.py migrate
    python manage.py runserver
-
-
-Documentation (Sphinx)
-----------------------
-
-La doc est générée **depuis ta machine hôte** (plus simple et rapide) :
-
-::
-
-   pip install -r docs/requirements.txt
-   make -C docs html
-   open docs/build/html/index.html  # macOS (Linux : xdg-open)
-
-Astuce : exécute ``make help`` à la racine du projet pour lister toutes les cibles
-disponibles (Docker + Docs).
