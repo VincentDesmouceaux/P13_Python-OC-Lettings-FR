@@ -24,9 +24,9 @@ Les 5 commandes
    make rebuild
 
    # 5) Vérifier que ça tourne
-   open http://localhost:8000    # macOS
-   # ou : xdg-open http://localhost:8000  # Linux
-   # ou : ouvrez votre navigateur et tapez http://localhost:8000
+   open http://localhost:8001    # macOS
+   # ou : xdg-open http://localhost:8001  # Linux
+   # ou : ouvrez votre navigateur et tapez http://localhost:8001
 
 Commandes courantes
 -------------------
