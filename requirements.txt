@@ -27,7 +27,7 @@ pycodestyle==2.11.1
 pydotplus==2.0.2
 pyflakes==3.1.0
 pyparsing==3.2.3
-pytest==8.4.1
+pytest==9.0.3
 pytest-cov==4.1.0
 pytest-django==4.11.1
 python-dotenv==1.0.1
