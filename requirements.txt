@@ -1,7 +1,7 @@
 asgiref==3.8.1
 autopep8==2.0.4
 black==25.1.0
-certifi==2025.4.26
+certifi==2026.10.19
 charset-normalizer==3.4.2
 click==8.2.1
 coverage==7.4.4
